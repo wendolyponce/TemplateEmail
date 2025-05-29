@@ -1,0 +1,42 @@
+<html>
+  <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
+    <div style="max-width: 600px; margin: auto; background-color: #ffffff; border: 1px solid #dddddd; padding: 20px;">
+      <h2 style="color: #0078D7;">Nueva solicitud registrada</h2>
+
+      <p style="font-size: 15px;">Hola,</p>
+
+      <p style="font-size: 15px;">
+        Se ha dado de alta la solicitud para el producto
+        <strong>@{triggerOutputs()?['body/sng_solicitudProducto']}</strong>,
+        actualmente en estado
+        <strong>@{variables('Estado')}</strong>.
+      </p>
+
+      <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;">
+
+      <table style="width: 100%; font-size: 15px;">
+        <tr>
+          <td style="font-weight: bold; width: 150px;">Peticionario:</td>
+          <td>@{triggerOutputs()?['body/sng_solicitudPeticionario']}</td>
+        </tr>
+        <tr>
+          <td style="font-weight: bold;">Beneficiario:</td>
+          <td>@{triggerOutputs()?['body/sng_solicitudBeneficiario']}</td>
+        </tr>
+        <tr>
+          <td style="font-weight: bold;">Aprobador:</td>
+          <td>@{triggerOutputs()?['body/sng_solicitudAprobador']}</td>
+        </tr>
+      </table>
+
+      <p style="margin-top: 20px;">
+        Quedamos atentos a la decisión del aprobador.
+      </p>
+
+      <p style="margin-top: 30px;">
+        Atentamente,<br/>
+        <strong>Equipo de Automatización</strong>
+      </p>
+    </div>
+  </body>
+</html>
