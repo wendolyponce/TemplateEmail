@@ -1,0 +1,72 @@
+    //NO EXISTE lote pendiente -> Puedes generar un lote
+
+    Set(varLoteIDGenerado,Left(currentUser.Email,Find("@",currentUser.Email)) & Text(Now(),"yyymmdd-hhmm"));
+
+    //Crear una copia de solicitud solo con estados pendientes
+    ClearCollect(
+        colSolicitud,
+        ShowColumns(
+            Filter(
+                    sng_solicitudes,
+                    sng_solicitudEstado = AppEstados.AprobadoAprobador1
+                ),
+                'sng_solicitudAprobador1Email',
+                'sng_solicitudAprobador1Nombre',
+                'sng_solicitudImporte',
+                'sng_solicitudBeneficiarioEmail',
+                'Solicitudes'
+            )
+    );
+
+
+    //Generar un lote desde cero
+    ClearCollect(
+        colResumenManager,
+        AddColumns(
+            GroupBy(
+                colSolicitud,
+                'cr8bd_manager',
+                'Registros'
+            ),
+            'NombreManager', First(Registros).'cr8bd_sng_solicitudaprobador1nombre',
+            'Total', Sum(Registros,'cr8bd_importe'),
+            'Usuarios_en_peticion', Concat(Registros,'cr8bd_sol_beneficiario',";"),
+            'FechaAgrupacion', Now(),
+            'ID', varLoteIDGenerado
+        )
+    ); 
+
+    // Guardar datos en Dataverse, cuando no hay lotes pendientes
+    ForAll(
+        colResumenManager, 
+        Patch(
+            sng_Lotes,
+            Defaults(sng_Lotes),
+            {
+                lote_LoteID:ID, 
+                lote_Estado: "Pendiente", 
+                lote_CantidadSolicitudes: CountRows(Registros), 
+                lote_CreadoFecha: FechaAgrupacion,
+                lote_CreadoPorEmail: currentUser.Email, 
+                lote_ImporteTotal: Total
+            }
+
+        )
+    
+    );
+
+    //Marcar las solicitudes
+
+            ForAll(
+                colSolicitud, 
+                Patch(
+                    sng_solicitudes, 
+                    LookUp(sng_solicitudes, Solicitudes = ThisRecord.'cr8bd_solicitudesid'),
+                    {
+                        sng_loteID: varLoteIDGenerado
+                    }
+                )
+            );
+
+
+Set(varPopUpAlertaLote, false);
