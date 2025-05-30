@@ -5,7 +5,8 @@
     //Crear una copia de solicitud solo con estados pendientes
     ClearCollect(
         colSolicitud,
-        ShowColumns(
+        AddColumns(
+            ShowColumns(
             Filter(
                     sng_solicitudes,
                     sng_solicitudEstado = AppEstados.AprobadoAprobador1
@@ -14,8 +15,23 @@
                 'sng_solicitudAprobador1Nombre',
                 'sng_solicitudImporte',
                 'sng_solicitudBeneficiarioEmail',
-                'Solicitudes'
-            )
+                Solicitudes
+            ),
+            Solicitudes, 'cr8bd_solicitudesid'
+        )
+    );
+    
+    //Marcar las solicitudes
+
+    ForAll(
+        colSolicitud, 
+        Patch(
+            sng_solicitudes, 
+            LookUp(sng_solicitudes, Solicitudes = ThisRecord.Solicitudes),
+            {
+                sng_loteID: varLoteIDGenerado
+            }
+        )
     );
 
 
@@ -31,6 +47,7 @@
             'NombreManager', First(Registros).'cr8bd_sng_solicitudaprobador1nombre',
             'Total', Sum(Registros,'cr8bd_importe'),
             'Usuarios_en_peticion', Concat(Registros,'cr8bd_sol_beneficiario',";"),
+            'Usuarios_IDs', Concat(Registros,'cr8bd_solicitudesid',";"),
             'FechaAgrupacion', Now(),
             'ID', varLoteIDGenerado
         )
@@ -55,18 +72,6 @@
     
     );
 
-    //Marcar las solicitudes
-
-            ForAll(
-                colSolicitud, 
-                Patch(
-                    sng_solicitudes, 
-                    LookUp(sng_solicitudes, Solicitudes = ThisRecord.'cr8bd_solicitudesid'),
-                    {
-                        sng_loteID: varLoteIDGenerado
-                    }
-                )
-            );
 
 
 Set(varPopUpAlertaLote, false);
