@@ -1,77 +1,75 @@
-    //NO EXISTE lote pendiente -> Puedes generar un lote
+// Asegurarse de tener el usuario actual cargado
+Set(currentUser, User());
 
-    Set(varLoteIDGenerado,Left(currentUser.Email,Find("@",currentUser.Email)) & Text(Now(),"yyymmdd-hhmm"));
+// NO EXISTE lote pendiente -> Puedes generar un lote
+Set(varLoteIDGenerado, Left(currentUser.Email, Find("@", currentUser.Email)) & Text(Now(), "yyymmdd-hhmm"));
 
-    //Crear una copia de solicitud solo con estados pendientes
-    ClearCollect(
-        colSolicitud,
-        AddColumns(
-            ShowColumns(
+// Crear una copia de solicitudes solo con estados pendientes
+ClearCollect(
+    colSolicitud,
+    AddColumns(
+        ShowColumns(
             Filter(
-                    sng_solicitudes,
-                    sng_solicitudEstado = AppEstados.AprobadoAprobador1
-                ),
-                'sng_solicitudAprobador1Email',
-                'sng_solicitudAprobador1Nombre',
-                'sng_solicitudImporte',
-                'sng_solicitudBeneficiarioEmail',
-                Solicitudes
+                sng_solicitudes,
+                sng_solicitudEstado = AppEstados.AprobadoAprobador1
             ),
-            Solicitudes, 'cr8bd_solicitudesid'
-        )
-    );
-    
-    //Marcar las solicitudes
+            'sng_solicitudAprobador1Email',
+            'sng_solicitudAprobador1Nombre',
+            'sng_solicitudImporte',
+            'sng_solicitudBeneficiarioEmail',
+            'cr8bd_manager',
+            Solicitudes // Este es el ID de Dataverse
+        ),
+        SolicitudesID, Solicitudes // Le damos un alias legible
+    )
+);
 
-    ForAll(
-        colSolicitud, 
-        Patch(
-            sng_solicitudes, 
-            LookUp(sng_solicitudes, Solicitudes = ThisRecord.Solicitudes),
-            {
-                sng_loteID: varLoteIDGenerado
-            }
-        )
-    );
+// Marcar las solicitudes con el lote generado
+ForAll(
+    colSolicitud, 
+    Patch(
+        sng_solicitudes, 
+        LookUp(sng_solicitudes, Solicitudes = ThisRecord.SolicitudesID),
+        {
+            sng_loteID: varLoteIDGenerado
+        }
+    )
+);
 
+// Generar un lote desde cero
+ClearCollect(
+    colResumenManager,
+    AddColumns(
+        GroupBy(
+            colSolicitud,
+            'cr8bd_manager',
+            "Registros"
+        ),
+        NombreManager, First(Registros).'sng_solicitudAprobador1Nombre',
+        Total, Sum(Registros, 'sng_solicitudImporte'),
+        Usuarios_en_peticion, Concat(Registros, 'sng_solicitudBeneficiarioEmail', ";"),
+        Usuarios_IDs, Concat(Registros, SolicitudesID, ";"),
+        FechaAgrupacion, Now(),
+        ID, varLoteIDGenerado
+    )
+);
 
-    //Generar un lote desde cero
-    ClearCollect(
-        colResumenManager,
-        AddColumns(
-            GroupBy(
-                colSolicitud,
-                'cr8bd_manager',
-                'Registros'
-            ),
-            'NombreManager', First(Registros).'cr8bd_sng_solicitudaprobador1nombre',
-            'Total', Sum(Registros,'cr8bd_importe'),
-            'Usuarios_en_peticion', Concat(Registros,'cr8bd_sol_beneficiario',";"),
-            'Usuarios_IDs', Concat(Registros,'cr8bd_solicitudesid',";"),
-            'FechaAgrupacion', Now(),
-            'ID', varLoteIDGenerado
-        )
-    ); 
+// Guardar datos en Dataverse
+ForAll(
+    colResumenManager, 
+    Patch(
+        sng_Lotes,
+        Defaults(sng_Lotes),
+        {
+            lote_LoteID: ID, 
+            lote_Estado: "Pendiente", 
+            lote_CantidadSolicitudes: CountRows(Registros), 
+            lote_CreadoFecha: FechaAgrupacion,
+            lote_CreadoPorEmail: currentUser.Email, 
+            lote_ImporteTotal: Total
+        }
+    )
+);
 
-    // Guardar datos en Dataverse, cuando no hay lotes pendientes
-    ForAll(
-        colResumenManager, 
-        Patch(
-            sng_Lotes,
-            Defaults(sng_Lotes),
-            {
-                lote_LoteID:ID, 
-                lote_Estado: "Pendiente", 
-                lote_CantidadSolicitudes: CountRows(Registros), 
-                lote_CreadoFecha: FechaAgrupacion,
-                lote_CreadoPorEmail: currentUser.Email, 
-                lote_ImporteTotal: Total
-            }
-
-        )
-    
-    );
-
-
-
+// Cerrar pop-up
 Set(varPopUpAlertaLote, false);
