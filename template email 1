@@ -1,14 +1,10 @@
-<div
-  style="
-    max-width: 600px;
+<div style="max-width: 600px;
     margin: auto;
     background-color: #ffffff;
     border: 1px solid #dddddd;
-    padding: 20px;
-  "
->
+    padding: 20px;">
   <h2 style="color: #0078D7;">
-    Nueva solicitud registrada
+    @{variables('HeaderEmail')}
   </h2>
 
   <p style="font-size: 15px;">
@@ -17,17 +13,13 @@
 
   <p style="font-size: 15px;">
     Se ha dado de alta la solicitud para el producto
-    <strong>asdasd</strong>, actualmente en estado
-    <strong>asdasd</strong>.
+    <strong>@{triggerOutputs()?['body/cr8bd_producto']}</strong>, actualmente en estado
+    <strong>@{variables('Estado')}</strong>.
   </p>
 
-  <hr
-    style="
-      margin: 20px 0;
+  <hr style="margin: 20px 0;
       border: none;
-      border-top: 1px solid #ddd;
-    "
-  />
+      border-top: 1px solid #ddd;">
 
   <table style="width: 100%; font-size: 15px;">
     <tbody>
@@ -35,19 +27,19 @@
         <td style="font-weight: bold; width: 150px;">
           Peticionario:
         </td>
-        <td>asdasd</td>
+        <td>@{triggerOutputs()?['body/cr8bd_solicitadopor']}</td>
       </tr>
       <tr>
         <td style="font-weight: bold;">
           Beneficiario:
         </td>
-        <td>asdasd</td>
+        <td>@{triggerOutputs()?['body/cr8bd_sol_beneficiario']}</td>
       </tr>
       <tr>
         <td style="font-weight: bold;">
           Aprobador:
         </td>
-        <td>asdasd</td>
+        <td>@{triggerOutputs()?['body/cr8bd_manager']}</td>
       </tr>
     </tbody>
   </table>
@@ -57,7 +49,8 @@
   </p>
 
   <p style="margin-top: 30px;">
-    Atentamente,<br />
-    <strong>Equipo de Automatización</strong>
+    Atentamente,
+
+    <strong>Gen AI Product Request</strong>
   </p>
 </div>
