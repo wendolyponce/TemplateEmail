@@ -1,3 +1,7 @@
+AppDatos = {
+    Importe: 38.7
+};
+
 //Verificar si existen Beneficiarios
 Set(varEstaVacioMyPeople, CountRows(MyPeople) = 0);
 
