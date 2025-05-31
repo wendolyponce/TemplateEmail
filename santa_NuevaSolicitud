@@ -1,19 +1,24 @@
-AppDatos = {
-    Importe: 38.7
-};
+// Variables para cálculo de meses y coste
+Set(varMesActual, Month(Today()));
+Set(varAnioActual, Year(Today()));
 
-//Verificar si existen Beneficiarios
+If(
+    varMesActual = 12,
+    Set(varMesesEstimados, 11), // diciembre: hasta noviembre del próximo año
+    Set(varMesesEstimados, 11 - varMesActual + 1) // incluye mes actual
+);
+
+Set(varCosteEstimado, varMesesEstimados * AppDatos.Importe);
+
+// Validaciones
 Set(varEstaVacioMyPeople, CountRows(MyPeople) = 0);
-
-//Verificar si existen Manager
 Set(varEstaVacioMyPeopleManager, CountRows(MyPeopleManager) = 0);
 
 If(
     varEstaVacioMyPeopleManager || IsBlank(cmbEntidad) || IsBlank(tiCECO.Value) || IsBlank(tiProducto.Value) || varEstaVacioMyPeople,
-    Notify(
-        "Completa todos los campos",
-        NotificationType.Error
-    ),
+    Notify("Completa todos los campos", NotificationType.Error),
+    
+    // Asignar valores clave
     Set(varManagerNombre, First(MyPeopleManager).DisplayName);
     Set(varManagerID, First(MyPeopleManager).MailNickname);
     Set(varPeticionarioID, currentUser.mailNickname);
@@ -24,44 +29,41 @@ If(
             sng_solicitudes,
             Defaults(sng_solicitudes),
             {
-                sng_solicitudPeticionarioEmail: currentUser.userPrincipalName ,
+                sng_solicitudPeticionarioEmail: currentUser.userPrincipalName,
                 sng_solicitudBeneficiarioEmail: UserPrincipalName,
                 sng_solicitudAprobador1Email: tiField_11.Value,
-                
+
                 sng_solicitudPeticionarioID: varPeticionarioID,
                 sng_solicitudBeneficiarioID: MailNickname,
                 sng_solicitudAprobador1ID: varManagerID,
 
-                sng_solicitudPeticionarioNombre: currentUser.displayName ,
+                sng_solicitudPeticionarioNombre: currentUser.DisplayName,
                 sng_solicitudBeneficiarioNombre: DisplayName,
                 sng_solicitudAprobador1Nombre: varManagerNombre,
-
 
                 sng_solicitudEntidad: cmbEntidad.Selected.sng_entidadClienteID,
                 sng_solicitudCECO: tiCECO.Value,
                 sng_solicitudProducto: tiProducto.Value,
-                
-                //Datos fuera del formulario
+
+                // Nuevas columnas para cálculo
+                sng_solicitudMesesEstimados: varMesesEstimados,
+                sng_solicitudCosteEstimado: varCosteEstimado,
+
+                // Datos generales
                 sng_solicitudEstado: AppEstados.PendienteAprobador1,
                 sng_solicitudFecha: Now(),
                 sng_solicitudImporte: AppDatos.Importe
-
             }
         )
     );
-    Notify(
-        "Envio correcto",
-        NotificationType.Success
-    );
+
+    Notify("Envío correcto", NotificationType.Success);
     Clear(MyPeople);
     Reset(tiField_11);
     Reset(tiCECO);
     Reset(tiProducto);
     Reset(cmbEntidad);
-    Navigate(Scr_Solicitudes);
-    
+    Navigate(Scr_Solicitudes)
 );
 
-
-Refresh(sng_solicitudes)
-
+Refresh(sng_solicitudes);
