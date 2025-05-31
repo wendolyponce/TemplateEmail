@@ -96,3 +96,110 @@ If(
         )
     )
 );
+
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+// ==========================
+// BLOQUE 2.1: Generar nuevo ID de lote
+// ==========================
+Set(
+    varLoteIDGenerado,
+    Left(currentUser.userPrincipalName, Find("@", currentUser.userPrincipalName)) & Text(Now(), "yyymmdd-hhmm" & "s")
+);
+
+// ==========================
+// BLOQUE 2.2: Cambiar estado del lote pendiente a "Reemplazado"
+// ==========================
+Patch(
+    sng_Lotes,
+    LookUp(sng_Lotes, lote_LoteID = varLotePendiente.lote_LoteID),
+    {
+        lote_Estado: "Reemplazado"
+    }
+);
+
+// ==========================
+// BLOQUE 2.3: Obtener TODAS las solicitudes aprobadas (con o sin lote)
+// ==========================
+ClearCollect(
+    colSolicitudesAprobadas,
+    ShowColumns(
+        Filter(
+            sng_solicitudes,
+            sng_solicitudEstado = AppEstados.AprobadoAprobador1
+        ),
+        sng_solicitudAprobador1Email,
+        sng_solicitudAprobador1Nombre,
+        sng_solicitudCosteEstimado,
+        sng_solicitudBeneficiarioEmail,
+        Solicitudes // ID de la solicitud
+    )
+);
+
+// ==========================
+// BLOQUE 2.4: Validar que haya solicitudes para procesar
+// ==========================
+If(
+    CountRows(colSolicitudesAprobadas) = 0,
+    Notify("No hay solicitudes aprobadas para procesar. No se generó ningún lote.", NotificationType.Warning);
+    Set(varPopUpAlertaLote, false), // Cerrar popup si no hay nada que hacer
+
+    // ==========================
+    // BLOQUE 2.5: Reasignar solicitudes al nuevo lote
+    // ==========================
+    ForAll(
+        colSolicitudesAprobadas,
+        Patch(
+            sng_solicitudes,
+            { Solicitudes: ThisRecord.cr8bd_solicitudesid },
+            { sng_loteID: varLoteIDGenerado }
+        )
+    );
+
+    // ==========================
+    // BLOQUE 2.6: Agrupar por manager y generar resumen
+    // ==========================
+    ClearCollect(
+        colResumenPorAprobador,
+        AddColumns(
+            GroupBy(
+                colSolicitudesAprobadas,
+                cr8bd_manager,
+                "Registros"
+            ),
+            NombreManager, First(Registros).cr8bd_sng_solicitudaprobador1nombre,
+            TotalCosteEstimado, Sum(Registros, cr8bd_sng_solicitudcosteestimado),
+            Beneficiarios, Concat(Registros, cr8bd_sol_beneficiario, ";"),
+            FechaLote, Now(),
+            ID, varLoteIDGenerado
+        )
+    );
+
+    // ==========================
+    // BLOQUE 2.7: Crear nuevo lote en Dataverse
+    // ==========================
+    ForAll(
+        colResumenPorAprobador,
+        Patch(
+            sng_Lotes,
+            Defaults(sng_Lotes),
+            {
+                lote_LoteID: ID,
+                lote_Estado: "Pendiente",
+                lote_CantidadSolicitudes: CountRows(Registros),
+                lote_CreadoFecha: FechaLote,
+                lote_CreadoPorEmail: currentUser.userPrincipalName,
+                lote_CreadoPorNombre: currentUser.displayName,
+                lote_TotalCosteEstimado: TotalCosteEstimado
+            }
+        )
+    );
+
+    // ==========================
+    // BLOQUE 2.8: Cerrar popup
+    // ==========================
+    Set(varPopUpAlertaLote, false)
+);
+
+
