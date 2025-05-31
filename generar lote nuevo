@@ -7,67 +7,67 @@ Set(
 );
 
 // ==========================
-// BLOQUE 1.2: Guardar ID si existe, o limpiar
+// BLOQUE 1.2: Recolectar solicitudes aprobadas sin lote
 // ==========================
-If(
-    !IsBlank(varLotePendiente),
-    Set(varLoteIDGenerado, varLotePendiente.lote_LoteID),
-    Set(varLoteIDGenerado, Blank())
+ClearCollect(
+    colSolicitudesAprobadas,
+    ShowColumns(
+        Filter(
+            sng_solicitudes,
+            sng_solicitudEstado = AppEstados.AprobadoAprobador1 && IsBlank(sng_loteID)
+        ),
+        sng_solicitudAprobador1Email,
+        sng_solicitudAprobador1Nombre,
+        sng_solicitudCosteEstimado,
+        sng_solicitudBeneficiarioEmail,
+        Solicitudes // ID de solicitud
+    )
 );
 
 // ==========================
-// BLOQUE 1.3: Si ya hay un lote pendiente, mostrar popup de confirmación
+// BLOQUE 1.3: Validar si hay solicitudes aprobadas sin lote
 // ==========================
 If(
-    !IsBlank(varLotePendiente),
-    Set(varPopUpAlertaLote, true), // Mostramos el popup de confirmar sobreescritura
-
-    // ==========================
-    // BLOQUE 1.4: No hay lote pendiente → Crear nuevo lote
-    // ==========================
-
-    // 1. Generar nuevo ID de lote (basado en email y fecha)
-    Set(varLoteIDGenerado,Left(currentUser.userPrincipalName, Find("@", currentUser.userPrincipalName)) & Text(Now(), "yyymmdd-hhmm" &"w"));
-
-    // 2. Filtrar solicitudes aprobadas y sin lote
-    ClearCollect(
-        colSolicitudesAprobadas,
-        ShowColumns(
-            Filter(
-                sng_solicitudes,
-                sng_solicitudEstado = AppEstados.AprobadoAprobador1 && IsBlank(sng_loteID)
-            ),
-            sng_solicitudAprobador1Email,
-            sng_solicitudAprobador1Nombre,
-            sng_solicitudCosteEstimado,
-            sng_solicitudBeneficiarioEmail,
-            Solicitudes // ID de solicitud
-        )
-    );
-
-    // 3. Validar que haya solicitudes que procesar
+    CountRows(colSolicitudesAprobadas) = 0,
+    
+    // 🟡 No hay solicitudes → Notificar y no hacer nada más
+    Notify("No hay solicitudes aprobadas sin lote. No se generó ningún lote.", NotificationType.Warning),
+    
+    // 🟢 Sí hay solicitudes → Continuar
     If(
-        CountRows(colSolicitudesAprobadas) = 0,
-        Notify("No hay solicitudes aprobadas sin lote. No se generó ningún lote.", NotificationType.Warning),
+        !IsBlank(varLotePendiente),
         
-        // 4. Marcar solicitudes con el nuevo lote ID
+        // Hay un lote pendiente → mostrar popup para confirmar sobreescritura
+        Set(varPopUpAlertaLote, true),
+
+        // No hay lote pendiente → generar lote directamente
+        // ==========================
+        // BLOQUE 1.4: Generar nuevo lote
+        // ==========================
+
+        Set(
+            varLoteIDGenerado,
+            Left(currentUser.userPrincipalName, Find("@", currentUser.userPrincipalName)) & Text(Now(), "yyymmdd-hhmm" & "w")
+        );
+
+        // 1. Marcar solicitudes con nuevo lote
         ForAll(
             colSolicitudesAprobadas,
             Patch(
                 sng_solicitudes,
-                { Solicitudes: ThisRecord.cr8bd_solicitudesid},
+                { Solicitudes: ThisRecord.cr8bd_solicitudesid },
                 { sng_loteID: varLoteIDGenerado }
             )
         );
 
-        // 5. Agrupar por aprobador y generar resumen
+        // 2. Agrupar por manager
         ClearCollect(
             colResumenPorAprobador,
             AddColumns(
                 GroupBy(
                     colSolicitudesAprobadas,
                     cr8bd_manager,
-                    Registros
+                    "Registros"
                 ),
                 NombreManager, First(Registros).cr8bd_sng_solicitudaprobador1nombre,
                 TotalCosteEstimado, Sum(Registros, cr8bd_sng_solicitudcosteestimado),
@@ -77,7 +77,7 @@ If(
             )
         );
 
-        // 6. Crear el nuevo lote en Dataverse
+        // 3. Crear el nuevo lote
         ForAll(
             colResumenPorAprobador,
             Patch(
@@ -94,14 +94,5 @@ If(
                 }
             )
         )
-
-        
-
-
-
-
-
-        
-
     )
 );
