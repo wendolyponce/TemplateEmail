@@ -1,0 +1,204 @@
+1. Sobreescribir:
+
+// ==========================
+// BLOQUE 2.1: Generar nuevo ID de lote
+// ==========================
+Set(
+    varLoteIDGenerado,
+    Left(currentUser.userPrincipalName, Find("@", currentUser.userPrincipalName)) & Text(Now(), "yyymmdd-hhmm")
+);
+
+// ==========================
+// BLOQUE 2.2: Cambiar estado del lote anterior
+// ==========================
+Patch(
+    sng_Lotes,
+    LookUp(sng_Lotes, lote_LoteID = varLotePendiente.lote_LoteID),
+    { lote_Estado: "Reemplazado" }
+);
+
+// ==========================
+// BLOQUE 2.3: Obtener solicitudes aprobadas actuales
+// ==========================
+ClearCollect(
+    colSolicitudesAprobadas,
+    ShowColumns(
+        Filter(
+            sng_solicitudes,
+            sng_solicitudEstado = AppEstados.AprobadoAprobador1
+        ),
+        sng_solicitudAprobador1Email,
+        sng_solicitudAprobador1Nombre,
+        sng_solicitudImporte,
+        sng_solicitudBeneficiarioEmail,
+        Solicitudes
+    )
+);
+
+// ==========================
+// BLOQUE 2.4: Validar si hay solicitudes
+// ==========================
+If(
+    CountRows(colSolicitudesAprobadas) = 0,
+    Notify("No hay solicitudes aprobadas para generar un nuevo lote.", NotificationType.Warning),
+    
+    // ==========================
+    // BLOQUE 2.5: Reasignar lote nuevo a todas las solicitudes
+    // ==========================
+    ForAll(
+        colSolicitudesAprobadas,
+        Patch(
+            sng_solicitudes,
+            { Solicitudes: ThisRecord.Solicitudes },
+            { sng_loteID: varLoteIDGenerado }
+        )
+    );
+
+    // ==========================
+    // BLOQUE 2.6: Agrupar y crear resumen por aprobador
+    // ==========================
+    ClearCollect(
+        colResumenPorAprobador,
+        AddColumns(
+            GroupBy(
+                colSolicitudesAprobadas,
+                sng_solicitudAprobador1Email,
+                "Registros"
+            ),
+            "NombreAprobador", First(Registros).sng_solicitudAprobador1Nombre,
+            "TotalImporte", Sum(Registros, sng_solicitudImporte),
+            "Beneficiarios", Concat(Registros, sng_solicitudBeneficiarioEmail, ";"),
+            "FechaLote", Now(),
+            "ID", varLoteIDGenerado
+        )
+    );
+
+    // ==========================
+    // BLOQUE 2.7: Crear nuevo lote
+    // ==========================
+    ForAll(
+        colResumenPorAprobador,
+        Patch(
+            sng_Lotes,
+            Defaults(sng_Lotes),
+            {
+                lote_LoteID: ID,
+                lote_Estado: "Pendiente",
+                lote_CantidadSolicitudes: CountRows(Registros),
+                lote_CreadoFecha: FechaLote,
+                lote_CreadoPorEmail: currentUser.userPrincipalName,
+                lote_ImporteTotal: TotalImporte
+            }
+        )
+    )
+);
+
+// ==========================
+// BLOQUE 2.8: Cerrar popup
+// ==========================
+Set(varPopUpAlertaLote, false);
+
+
+2. Generar lote:
+
+// ==========================
+// BLOQUE 1.1: Buscar lote pendiente existente
+// ==========================
+Set(
+    varLotePendiente,
+    LookUp(sng_Lotes, lote_Estado = "Pendiente")
+);
+
+// ==========================
+// BLOQUE 1.2: Guardar ID si existe, o limpiar
+// ==========================
+If(
+    !IsBlank(varLotePendiente),
+    Set(varLoteIDGenerado, varLotePendiente.lote_LoteID),
+    Set(varLoteIDGenerado, Blank())
+);
+
+// ==========================
+// BLOQUE 1.3: Si ya hay un lote pendiente, mostrar popup de confirmación
+// ==========================
+If(
+    !IsBlank(varLotePendiente),
+    Set(varPopUpAlertaLote, true), // Mostramos el popup de confirmar sobreescritura
+
+    // ==========================
+    // BLOQUE 1.4: No hay lote pendiente → Crear nuevo lote
+    // ==========================
+
+    // 1. Generar nuevo ID de lote (basado en email y fecha)
+    Set(
+        varLoteIDGenerado,
+        Left(currentUser.userPrincipalName, Find("@", currentUser.userPrincipalName)) & Text(Now(), "yyymmdd-hhmm")
+    );
+
+    // 2. Filtrar solicitudes aprobadas y sin lote
+    ClearCollect(
+        colSolicitudesAprobadas,
+        ShowColumns(
+            Filter(
+                sng_solicitudes,
+                sng_solicitudEstado = AppEstados.AprobadoAprobador1 && IsBlank(sng_loteID)
+            ),
+            sng_solicitudAprobador1Email,
+            sng_solicitudAprobador1Nombre,
+            sng_solicitudImporte,
+            sng_solicitudBeneficiarioEmail,
+            Solicitudes // ID de solicitud
+        )
+    );
+
+    // 3. Validar que haya solicitudes que procesar
+    If(
+        CountRows(colSolicitudesAprobadas) = 0,
+        Notify("No hay solicitudes aprobadas sin lote. No se generó ningún lote.", NotificationType.Warning),
+        
+        // 4. Marcar solicitudes con el nuevo lote ID
+        ForAll(
+            colSolicitudesAprobadas,
+            Patch(
+                sng_solicitudes,
+                { Solicitudes: ThisRecord.Solicitudes },
+                { sng_loteID: varLoteIDGenerado }
+            )
+        );
+
+        // 5. Agrupar por aprobador y generar resumen
+        ClearCollect(
+            colResumenPorAprobador,
+            AddColumns(
+                GroupBy(
+                    colSolicitudesAprobadas,
+                    sng_solicitudAprobador1Email,
+                    "Registros"
+                ),
+                "NombreAprobador", First(Registros).sng_solicitudAprobador1Nombre,
+                "TotalImporte", Sum(Registros, sng_solicitudImporte),
+                "Beneficiarios", Concat(Registros, sng_solicitudBeneficiarioEmail, ";"),
+                "FechaLote", Now(),
+                "ID", varLoteIDGenerado
+            )
+        );
+
+        // 6. Crear el nuevo lote en Dataverse
+        ForAll(
+            colResumenPorAprobador,
+            Patch(
+                sng_Lotes,
+                Defaults(sng_Lotes),
+                {
+                    lote_LoteID: ID,
+                    lote_Estado: "Pendiente",
+                    lote_CantidadSolicitudes: CountRows(Registros),
+                    lote_CreadoFecha: FechaLote,
+                    lote_CreadoPorEmail: currentUser.userPrincipalName,
+                    lote_ImporteTotal: TotalImporte
+                }
+            )
+        )
+    )
+);
+
