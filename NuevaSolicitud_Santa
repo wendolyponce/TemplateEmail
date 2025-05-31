@@ -1,0 +1,63 @@
+//Verificar si existen Beneficiarios
+Set(varEstaVacioMyPeople, CountRows(MyPeople) = 0);
+
+//Verificar si existen Manager
+Set(varEstaVacioMyPeopleManager, CountRows(MyPeopleManager) = 0);
+
+If(
+    varEstaVacioMyPeopleManager || IsBlank(cmbEntidad) || IsBlank(tiCECO.Value) || IsBlank(tiProducto.Value) || varEstaVacioMyPeople,
+    Notify(
+        "Completa todos los campos",
+        NotificationType.Error
+    ),
+    Set(varManagerNombre, First(MyPeopleManager).DisplayName);
+    Set(varManagerID, First(MyPeopleManager).MailNickname);
+    Set(varPeticionarioID, currentUser.mailNickname);
+    
+    ForAll(
+        MyPeople,
+        Patch(
+            sng_solicitudes,
+            Defaults(sng_solicitudes),
+            {
+                sng_solicitudPeticionarioEmail: currentUser.userPrincipalName ,
+                sng_solicitudBeneficiarioEmail: UserPrincipalName,
+                sng_solicitudAprobador1Email: tiField_11.Value,
+                
+                sng_solicitudPeticionarioID: varPeticionarioID,
+                sng_solicitudBeneficiarioID: MailNickname,
+                sng_solicitudAprobador1ID: varManagerID,
+
+                sng_solicitudPeticionarioNombre: currentUser.displayName ,
+                sng_solicitudBeneficiarioNombre: DisplayName,
+                sng_solicitudAprobador1Nombre: varManagerNombre,
+
+
+                sng_solicitudEntidad: cmbEntidad.Selected.sng_entidadClienteID,
+                sng_solicitudCECO: tiCECO.Value,
+                sng_solicitudProducto: tiProducto.Value,
+                
+                //Datos fuera del formulario
+                sng_solicitudEstado: AppEstados.PendienteAprobador1,
+                sng_solicitudFecha: Now(),
+                sng_solicitudImporte: AppDatos.Importe
+
+            }
+        )
+    );
+    Notify(
+        "Envio correcto",
+        NotificationType.Success
+    );
+    Clear(MyPeople);
+    Reset(tiField_11);
+    Reset(tiCECO);
+    Reset(tiProducto);
+    Reset(cmbEntidad);
+    Navigate(Scr_Solicitudes);
+    
+);
+
+
+Refresh(sng_solicitudes)
+
