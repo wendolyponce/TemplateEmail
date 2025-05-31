@@ -1,37 +1,56 @@
-// Variables para cálculo de meses y coste
+// =======================================
+// BLOQUE 1: Variables para cálculo de meses y coste estimado
+// Regla: Se paga hasta el 30 de noviembre del año actual.
+// En diciembre, se cuenta hasta noviembre del año siguiente (11 meses).
+// =======================================
+
 Set(varMesActual, Month(Today()));
 Set(varAnioActual, Year(Today()));
 
 If(
     varMesActual = 12,
-    Set(varMesesEstimados, 11), // diciembre: hasta noviembre del próximo año
-    Set(varMesesEstimados, 11 - varMesActual + 1) // incluye mes actual
+    Set(varMesesEstimados, 11), // Diciembre → hasta noviembre del próximo año
+    Set(varMesesEstimados, 11 - varMesActual + 1) // Incluye el mes actual
 );
 
 Set(varCosteEstimado, varMesesEstimados * AppDatos.Importe);
 
-// Validaciones
+
+// =======================================
+// BLOQUE 2: Validación de campos obligatorios
+// Si falta algún dato, se notifica al usuario y se detiene el proceso.
+// =======================================
+
 Set(varEstaVacioMyPeople, CountRows(MyPeople) = 0);
 Set(varEstaVacioMyPeopleManager, CountRows(MyPeopleManager) = 0);
 
 If(
-    varEstaVacioMyPeopleManager || IsBlank(cmbEntidad) || IsBlank(tiCECO.Value) || IsBlank(tiProducto.Value) || varEstaVacioMyPeople,
-    Notify("Completa todos los campos", NotificationType.Error),
+    varEstaVacioMyPeopleManager || IsBlank(cmbEntidad) || IsBlank(tiCECO.Text) || IsBlank(tiProducto.Text) || varEstaVacioMyPeople,
     
-    // Asignar valores clave
+    Notify("Completa todos los campos obligatorios antes de continuar.", NotificationType.Error),
+
+    // =======================================
+    // BLOQUE 3: Asignación de variables de usuario actual y aprobador
+    // =======================================
+    
     Set(varManagerNombre, First(MyPeopleManager).DisplayName);
     Set(varManagerID, First(MyPeopleManager).MailNickname);
     Set(varPeticionarioID, currentUser.mailNickname);
     
+    // =======================================
+    // BLOQUE 4: Crear registro para cada beneficiario
+    // =======================================
+
     ForAll(
         MyPeople,
         Patch(
             sng_solicitudes,
             Defaults(sng_solicitudes),
             {
+                // Datos de peticionario y beneficiario
                 sng_solicitudPeticionarioEmail: currentUser.userPrincipalName,
                 sng_solicitudBeneficiarioEmail: UserPrincipalName,
-                sng_solicitudAprobador1Email: tiField_11.Value,
+                sng_solicitudAprobador1Email: tiField_11.Text,
 
                 sng_solicitudPeticionarioID: varPeticionarioID,
                 sng_solicitudBeneficiarioID: MailNickname,
@@ -41,15 +60,16 @@ If(
                 sng_solicitudBeneficiarioNombre: DisplayName,
                 sng_solicitudAprobador1Nombre: varManagerNombre,
 
+                // Datos del formulario
                 sng_solicitudEntidad: cmbEntidad.Selected.sng_entidadClienteID,
-                sng_solicitudCECO: tiCECO.Value,
-                sng_solicitudProducto: tiProducto.Value,
+                sng_solicitudCECO: tiCECO.Text,
+                sng_solicitudProducto: tiProducto.Text,
 
-                // Nuevas columnas para cálculo
+                // Nuevas columnas: cálculo estimado
                 sng_solicitudMesesEstimados: varMesesEstimados,
                 sng_solicitudCosteEstimado: varCosteEstimado,
 
-                // Datos generales
+                // Metadatos
                 sng_solicitudEstado: AppEstados.PendienteAprobador1,
                 sng_solicitudFecha: Now(),
                 sng_solicitudImporte: AppDatos.Importe
@@ -57,7 +77,11 @@ If(
         )
     );
 
-    Notify("Envío correcto", NotificationType.Success);
+    // =======================================
+    // BLOQUE 5: Post-envío – limpiar controles y navegar
+    // =======================================
+
+    Notify("Envío correcto. La solicitud ha sido registrada.", NotificationType.Success);
     Clear(MyPeople);
     Reset(tiField_11);
     Reset(tiCECO);
@@ -65,5 +89,9 @@ If(
     Reset(cmbEntidad);
     Navigate(Scr_Solicitudes)
 );
+
+// =======================================
+// BLOQUE 6: Actualizar galería de solicitudes
+// =======================================
 
 Refresh(sng_solicitudes);
