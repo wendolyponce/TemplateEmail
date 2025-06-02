@@ -1,243 +1,194 @@
-//Recolectar solicitudes aprobadas CON lote
-Set(varLotePendiente,LookUp(sng_Lotes, lote_Estado = "Pendiente"));
-If(
-    !IsBlank(varLotePendiente),
-    Set(varLoteIDGenerado, varLotePendiente.lote_LoteID);
-    ClearCollect(
-        colSolicitudesAprobadasConLote,
-        ShowColumns(
-            Filter(sng_solicitudes, sng_loteID = varLoteIDGenerado),
-            sng_solicitudAprobador1Email,
-            sng_solicitudAprobador1Nombre,
-            sng_solicitudAprobador1ID,
-            sng_solicitudBeneficiarioEmail,
-            sng_solicitudBeneficiarioNombre,
-            sng_solicitudBeneficiarioID,
-            sng_solicitudPeticionarioEmail,
-            sng_solicitudPeticionarioNombre,
-            sng_solicitudPeticionarioID,
-            sng_solicitudCosteEstimado,
-            sng_solicitudCECO, 
-            sng_solicitudEntidad,
-            sng_solicitudProducto,
-            sng_solicitudFecha, 
-            sng_solicitudFechaFin,
-            Solicitudes
-        )
-    ),
-    Clear(colSolicitudesAprobadasConLote)
+// 1. Recolectar solicitudes APROBADAS con lote pendiente
+ClearCollect(
+    colLotesPendientes,
+    Filter(sng_Lotes, lote_Estado = "Pendiente")
 );
 
-//Resumir solicitudes aprobadas CON lote por Manager
+ClearCollect(
+    colSolicitudesAprobadasConLote,
+    ShowColumns(
+        Filter(
+            sng_solicitudes,
+            sng_loteID in colLotesPendientes.lote_LoteID
+        ),
+        sng_solicitudAprobador1Email,
+        sng_solicitudAprobador1Nombre,
+        sng_solicitudAprobador1ID,
+        sng_solicitudBeneficiarioEmail,
+        sng_solicitudBeneficiarioNombre,
+        sng_solicitudBeneficiarioID,
+        sng_solicitudPeticionarioEmail,
+        sng_solicitudPeticionarioNombre,
+        sng_solicitudPeticionarioID,
+        sng_solicitudCosteEstimado,
+        sng_solicitudCECO,
+        sng_solicitudEntidad,
+        sng_solicitudProducto,
+        sng_solicitudFecha,
+        sng_solicitudFechaFin,
+        Solicitudes,
+        sng_loteID
+    )
+);
+
+// 2. Resumen solicitudes con lote pendiente por manager
 If(
     !IsEmpty(colSolicitudesAprobadasConLote),
     ClearCollect(
-        ResumenSolicitudesAprobadasConLote,
+        colResumenSolicitudesConLotePendiente,
         AddColumns(
             GroupBy(
                 colSolicitudesAprobadasConLote,
-                cr8bd_manager,
-                Registros
+                sng_solicitudAprobador1ID,
+                "Registros"
             ),
-            CECO, First(Registros).cr8bd_sol_solicitudceco,
-            Entidad, First(Registros).cr8bd_sol_solicitudentidad,
-            ManagerNombre, First(Registros).cr8bd_sng_solicitudaprobador1nombre,
-            ManagerID, First(Registros).cr8bd_sng_aprobador1id,
-            BeneficiariosNombre, Concat(Registros, cr8bd_sol_beneficiario, ","),
-            BeneficiariosID, Concat(Registros, cr8bd_sng_solicitudbeneficiarioid, ","),
-            BeneficiariosEmail, Concat(Registros, cr8bd_sng_solicitudbeneficiarionombre, ","),
-            PeticionariosNombre, Concat(Registros, cr8bd_sng_solicitudpeticionarionombre, ","),
-            PeticionariosID, Concat(Registros, cr8bd_sng_solicitudpeticionarioid, ","),
-            PeticionariosEmail, Concat(Registros, cr8bd_sng_solicitudpeticionarionombre, ","),
-            Producto, First(Registros).cr8bd_producto,
-            Total, Sum(Registros, cr8bd_sng_solicitudcosteestimado),
-            Usuarios_en_peticion, Concat(Registros, cr8bd_sol_beneficiario, ","),
-            FechaAgrupacion, Now(),
-            FechasFin, Concat(Registros, Text(cr8bd_sng_solicitudfechafin, "dd/mm/yy"), ","),
-            FechasIni, Concat(Registros, Text(cr8bd_sng_solicitudfecha, "dd/mm/yy"), ","),
-            SolicitudID, Concat(Registros, cr8bd_solicitudesid, ","),
-            ID, varLoteIDGenerado & "@" & First(Registros).cr8bd_sng_aprobador1id
+            "ManagerNombre", First(Registros).sng_solicitudAprobador1Nombre,
+            "ManagerEmail", First(Registros).sng_solicitudAprobador1Email,
+            "CECO", First(Registros).sng_solicitudCECO,
+            "Entidad", First(Registros).sng_solicitudEntidad,
+            "Producto", First(Registros).sng_solicitudProducto,
+            "Total", Sum(Registros, sng_solicitudCosteEstimado),
+            "SolicitudID", Concat(Registros, Solicitudes, ","),
+            "LoteID", First(Registros).sng_loteID
         )
     )
 );
 
-//Recolectar solicitudes aprobadas SIN lote
+// 3. Recolectar solicitudes APROBADAS sin lote
 ClearCollect(
     colSolicitudesAprobadasSinLote,
     ShowColumns(
         Filter(
             sng_solicitudes,
-            sng_solicitudEstado = AppEstados.AprobadoAprobador1 && IsBlank(sng_loteID)
+            sng_solicitudEstado = AppEstados.AprobadoAprobador1 &&
+            IsBlank(sng_loteID)
         ),
-            sng_solicitudAprobador1Email,
-            sng_solicitudAprobador1Nombre,
-            sng_solicitudAprobador1ID,
-            sng_solicitudBeneficiarioEmail,
-            sng_solicitudBeneficiarioNombre,
-            sng_solicitudBeneficiarioID,
-            sng_solicitudPeticionarioEmail,
-            sng_solicitudPeticionarioNombre,
-            sng_solicitudPeticionarioID,
-            sng_solicitudCosteEstimado,
-            sng_solicitudCECO, 
-            sng_solicitudEntidad,
-            sng_solicitudProducto,
-            sng_solicitudFecha, 
-            sng_solicitudFechaFin,
-            Solicitudes
+        sng_solicitudAprobador1Email,
+        sng_solicitudAprobador1Nombre,
+        sng_solicitudAprobador1ID,
+        sng_solicitudBeneficiarioEmail,
+        sng_solicitudBeneficiarioNombre,
+        sng_solicitudBeneficiarioID,
+        sng_solicitudPeticionarioEmail,
+        sng_solicitudPeticionarioNombre,
+        sng_solicitudPeticionarioID,
+        sng_solicitudCosteEstimado,
+        sng_solicitudCECO,
+        sng_solicitudEntidad,
+        sng_solicitudProducto,
+        sng_solicitudFecha,
+        sng_solicitudFechaFin,
+        Solicitudes
     )
 );
 
-//Resumir solicitudes aprobadas SIN lote por Manager
+// 4. Validar si hay solicitudes sin lote
 If(
     CountRows(colSolicitudesAprobadasSinLote) = 0,
-        ClearCollect(
-            colResumenSolicitudesAprobadasSinLote,
-            AddColumns(
+    Notify("No hay solicitudes aprobadas sin lote. No se generó ningún lote.", NotificationType.Warning),
+    
+    // Hay solicitudes sin lote → agrupar por Manager y crear lote por grupo
+    With(
+        {
+            colAgrupadasPorManager: AddColumns(
                 GroupBy(
                     colSolicitudesAprobadasSinLote,
-                    cr8bd_manager,
-                    Registros
+                    sng_solicitudAprobador1ID,
+                    "Registros"
                 ),
-                CECO, First(Registros).cr8bd_sol_solicitudceco,
-                Entidad, First(Registros).cr8bd_sol_solicitudentidad,
-                ManagerNombre, First(Registros).cr8bd_sng_solicitudaprobador1nombre,
-                ManagerID, First(Registros).cr8bd_sng_aprobador1id,
-                BeneficiariosNombre, Concat(Registros, cr8bd_sol_beneficiario, ","),
-                BeneficiariosID, Concat(Registros, cr8bd_sng_solicitudbeneficiarioid, ","),
-                BeneficiariosEmail, Concat(Registros, cr8bd_sng_solicitudbeneficiarionombre, ","),
-                PeticionariosNombre, Concat(Registros, cr8bd_sng_solicitudpeticionarionombre, ","),
-                PeticionariosID, Concat(Registros, cr8bd_sng_solicitudpeticionarioid, ","),
-                PeticionariosEmail, Concat(Registros, cr8bd_sng_solicitudpeticionarionombre, ","),
-                Producto, First(Registros).cr8bd_producto,
-                Total, Sum(Registros, cr8bd_sng_solicitudcosteestimado),
-                Usuarios_en_peticion, Concat(Registros, cr8bd_sol_beneficiario, ","),
-                FechaAgrupacion, Now(),
-                FechasFin, Concat(Registros, Text(cr8bd_sng_solicitudfechafin, "dd/mm/yy"), ","),
-                FechasIni, Concat(Registros, Text(cr8bd_sng_solicitudfecha, "dd/mm/yy"), ","),
-                SolicitudID, Concat(Registros, cr8bd_solicitudesid, ","),   
-                ID, varLoteIDGenerado & "@" & First(Registros).cr8bd_sng_aprobador1id
+                "ManagerNombre", First(Registros).sng_solicitudAprobador1Nombre,
+                "ManagerEmail", First(Registros).sng_solicitudAprobador1Email
             )
-        );
+        },
+        ForAll(
+            colAgrupadasPorManager,
+            With(
+                {
+                    varLoteIDPorManager: Text(Now(), "yyymmdd-hhmm") & "@" & ThisRecord.sng_solicitudAprobador1ID
+                },
+                
+                // Crear nuevo lote
+                Patch(
+                    sng_Lotes,
+                    Defaults(sng_Lotes),
+                    {
+                        lote_LoteID: varLoteIDPorManager,
+                        lote_Estado: "Pendiente",
+                        lote_CreadoFecha: Now(),
+                        lote_CreadoPorEmail: currentUser.userPrincipalName,
+                        lote_CreadoPorNombre: currentUser.displayName
+                    }
+                );
 
+                // Marcar solicitudes de ese manager con el lote generado
+                ForAll(
+                    ThisRecord.Registros,
+                    Patch(
+                        sng_solicitudes,
+                        {Solicitudes: ThisRecord.Solicitudes},
+                        {sng_loteID: varLoteIDPorManager}
+                    )
+                )
+            )
+        )
+    )
 );
 
+// 5. Recolectar nuevamente todas las solicitudes con lote pendiente
+ClearCollect(
+    colLotesPendientes,
+    Filter(sng_Lotes, lote_Estado = "Pendiente")
+);
 
-// Validar si hay solicitudes aprobadas sin descargar/lote
+ClearCollect(
+    colSolicitudesConLotesPendientes,
+    ShowColumns(
+        Filter(
+            sng_solicitudes,
+            sng_loteID in colLotesPendientes.lote_LoteID
+        ),
+        sng_solicitudAprobador1Email,
+        sng_solicitudAprobador1Nombre,
+        sng_solicitudAprobador1ID,
+        sng_solicitudBeneficiarioEmail,
+        sng_solicitudBeneficiarioNombre,
+        sng_solicitudBeneficiarioID,
+        sng_solicitudPeticionarioEmail,
+        sng_solicitudPeticionarioNombre,
+        sng_solicitudPeticionarioID,
+        sng_solicitudCosteEstimado,
+        sng_solicitudCECO,
+        sng_solicitudEntidad,
+        sng_solicitudProducto,
+        sng_solicitudFecha,
+        sng_solicitudFechaFin,
+        Solicitudes,
+        sng_loteID
+    )
+);
+
+// 6. Resumen de solicitudes con lotes pendientes por Manager
 If(
-    CountRows(colSolicitudesAprobadasSinLote) = 0,
-
-    //No hay solicitudes no hacer nada
-    Notify("No hay solicitudes aprobadas sin lote. No se generó ningún lote.", NotificationType.Warning),
-
-    //Si hay solicitudes verificar si existe un descarga pendiente
-    If(
-        !IsBlank(varLotePendiente),
-        //Mostrar popup
-        Set(varPopUpAlertaLote, true),
-        
-        /* INICIO BLOQUE REUTILIZABLE */
-
-        //Crear de cero
-        //Set(varLoteIDGenerado,Left(currentUser.userPrincipalName, Find("@", currentUser.userPrincipalName)) & Text(Now(), "yyymmdd-hhmm"));
-        Set(varLoteIDGenerado,Text(Now(), "yyymmdd-hhmm") & "@" & Left(currentUser.userPrincipalName, Find("@", currentUser.userPrincipalName)-1));
-        Patch(
-            sng_Lotes,
-            Defaults(sng_Lotes),
-            {
-                lote_LoteID: varLoteIDGenerado,
-                lote_Estado: "Pendiente",
-                lote_CreadoFecha: Now(),
-                lote_CreadoPorEmail: currentUser.userPrincipalName,
-                lote_CreadoPorNombre: currentUser.displayName
-            }
-        );
-
-        // Marcar solicitudes nuevas sin lote
-        ForAll(
-            colSolicitudesAprobadasSinLote,
-            Patch(
-                sng_solicitudes,
-                {Solicitudes: ThisRecord.cr8bd_solicitudesid},
-                {sng_loteID: varLoteIDGenerado}
-            )
-        );
-        // Marcar solicitudes del lote reempalzado
-        ForAll(
-            colSolicitudesAprobadasConLote,
-            Patch(
-                sng_solicitudes,
-                {Solicitudes: ThisRecord.cr8bd_solicitudesid},
-                {sng_loteID: varLoteIDGenerado}
-            )
-        );
-
-        //Recolectar solicitudes con Ultimo Lote
-        Set(varLotePendiente,LookUp(sng_Lotes, lote_Estado = "Pendiente"));
-        If(
-            !IsBlank(varLotePendiente),
-            Set(varLoteIDGenerado, varLotePendiente.lote_LoteID);
-            ClearCollect(
-                colSolicitudesConLoteUltimo,
-                ShowColumns(
-                    Filter(sng_solicitudes, sng_loteID = varLoteIDGenerado),
-                    sng_solicitudAprobador1Email,
-                    sng_solicitudAprobador1Nombre,
-                    sng_solicitudAprobador1ID,
-                    sng_solicitudBeneficiarioEmail,
-                    sng_solicitudBeneficiarioNombre,
-                    sng_solicitudBeneficiarioID,
-                    sng_solicitudPeticionarioEmail,
-                    sng_solicitudPeticionarioNombre,
-                    sng_solicitudPeticionarioID,
-                    sng_solicitudCosteEstimado,
-                    sng_solicitudCECO, 
-                    sng_solicitudEntidad,
-                    sng_solicitudProducto,
-                    sng_solicitudFecha, 
-                    sng_solicitudFechaFin,
-                    Solicitudes
-                )
+    !IsEmpty(colSolicitudesConLotesPendientes),
+    ClearCollect(
+        colResumenSolicitudesConLotesPendientes,
+        AddColumns(
+            GroupBy(
+                colSolicitudesConLotesPendientes,
+                sng_solicitudAprobador1ID,
+                "Registros"
             ),
-            Clear(colSolicitudesConLoteUltimo)
-        );
-
-        //Resumir solicitudes con Ultimo Lote por Manager
-        If(
-            !IsEmpty(colSolicitudesConLoteUltimo),
-            ClearCollect(
-                colResumenSolicitudesConLoteUltimo,
-                AddColumns(
-                    GroupBy(
-                        colSolicitudesConLoteUltimo,
-                        cr8bd_manager,
-                        Registros
-                    ),
-                    CECO, First(Registros).cr8bd_sol_solicitudceco,
-                    Entidad, First(Registros).cr8bd_sol_solicitudentidad,
-                    ManagerNombre, First(Registros).cr8bd_sng_solicitudaprobador1nombre,
-                    ManagerID, First(Registros).cr8bd_sng_aprobador1id,
-                    BeneficiariosNombre, Concat(Registros, cr8bd_sol_beneficiario, ","),
-                    BeneficiariosID, Concat(Registros, cr8bd_sng_solicitudbeneficiarioid, ","),
-                    BeneficiariosEmail, Concat(Registros, cr8bd_sng_solicitudbeneficiarionombre, ","),
-                    PeticionariosNombre, Concat(Registros, cr8bd_sng_solicitudpeticionarionombre, ","),
-                    PeticionariosID, Concat(Registros, cr8bd_sng_solicitudpeticionarioid, ","),
-                    PeticionariosEmail, Concat(Registros, cr8bd_sng_solicitudpeticionarionombre, ","),
-                    Producto, First(Registros).cr8bd_producto,
-                    Total, Sum(Registros, cr8bd_sng_solicitudcosteestimado),
-                    Usuarios_en_peticion, Concat(Registros, cr8bd_sol_beneficiario, ","),
-                    FechaAgrupacion, Now(),
-                    FechasFin, Concat(Registros, Text(cr8bd_sng_solicitudfechafin, "dd/mm/yy"), ","),
-                    FechasIni, Concat(Registros, Text(cr8bd_sng_solicitudfecha, "dd/mm/yy"), ","),
-                    SolicitudID, Concat(Registros, cr8bd_solicitudesid, ","),
-                    ID, varLoteIDGenerado & "@" & First(Registros).cr8bd_sng_aprobador1id
-
-                )
-            )
-        );
-
-
-        /* FIN BLOQUE REUTILIZABLE */
-
-    );
+            "ManagerNombre", First(Registros).sng_solicitudAprobador1Nombre,
+            "ManagerEmail", First(Registros).sng_solicitudAprobador1Email,
+            "CECO", First(Registros).sng_solicitudCECO,
+            "Entidad", First(Registros).sng_solicitudEntidad,
+            "Producto", First(Registros).sng_solicitudProducto,
+            "Total", Sum(Registros, sng_solicitudCosteEstimado),
+            "Usuarios_en_peticion", Concat(Registros, sng_solicitudBeneficiarioNombre, ","),
+            "FechasFin", Concat(Registros, Text(sng_solicitudFechaFin, "dd/mm/yy"), ","),
+            "FechasIni", Concat(Registros, Text(sng_solicitudFecha, "dd/mm/yy"), ","),
+            "SolicitudID", Concat(Registros, Solicitudes, ","),
+            "LoteID", First(Registros).sng_loteID
+        )
+    )
 );
