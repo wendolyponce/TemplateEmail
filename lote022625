@@ -1,15 +1,14 @@
 // ================================
 // BOTÓN: Generar Lote
-// FUNCIONALIDAD: Determina si hay solicitudes sin lote, si hay lote pendiente y si se debe generar uno nuevo o mostrar popup
 // ================================
 
-// 1. Buscar si existe un lote con estado pendiente
+// Buscar si existe lote pendiente
 Set(
     varLotePendiente,
     LookUp(sng_Lotes, lote_Estado = "Pendiente")
 );
 
-// 2. Obtener todas las solicitudes aprobadas sin lote
+// Obtener solicitudes aprobadas sin lote
 ClearCollect(
     colSolicitudesAprobadasSinLote,
     ShowColumns(
@@ -26,27 +25,26 @@ ClearCollect(
     )
 );
 
-// 3. Verificar si hay solicitudes para procesar
+// Validar si hay solicitudes aprobadas sin lote
 If(
     CountRows(colSolicitudesAprobadasSinLote) = 0,
-    
-    // Caso 3.1: No hay solicitudes aprobadas sin lote
     Notify("No hay solicitudes aprobadas sin lote. No se generó ningún lote.", NotificationType.Warning),
     
-    // Caso 3.2: Sí hay solicitudes
     If(
         !IsBlank(varLotePendiente),
-        
-        // 3.2.1: Existe un lote pendiente → mostrar popup para decidir sobrescribir
+        // Mostrar alerta si hay lote pendiente
         Set(varPopUpAlertaLote, true),
         
-        // 3.2.2: No existe un lote pendiente → generar uno nuevo directamente
+        // Generar lote directamente si no hay lote pendiente
+        /* INICIO BLOQUE REUTILIZABLE */
+        // ================================
+        // BLOQUE: Generar nuevo lote y resumen
+        // ================================
         Set(
             varLoteIDGenerado,
             Left(currentUser.userPrincipalName, Find("@", currentUser.userPrincipalName)) & Text(Now(), "yyymmdd-hhmm")
         );
 
-        // Asignar lote a solicitudes
         ForAll(
             colSolicitudesAprobadasSinLote,
             Patch(
@@ -56,13 +54,14 @@ If(
             )
         );
 
-        // Recolectar solicitudes ya asociadas al nuevo lote
         ClearCollect(
             colSolicitudesConNuevoLote,
-            Filter(sng_solicitudes, sng_loteID = varLoteIDGenerado)
+            Filter(
+                sng_solicitudes,
+                sng_loteID = varLoteIDGenerado
+            )
         );
 
-        // Agrupar y resumir por aprobador
         ClearCollect(
             colResumenPorAprobador,
             AddColumns(
@@ -79,7 +78,6 @@ If(
             )
         );
 
-        // Crear el nuevo lote
         ForAll(
             colResumenPorAprobador,
             Patch(
@@ -96,31 +94,23 @@ If(
                 }
             )
         )
+        /* FIN BLOQUE REUTILIZABLE */
     )
 );
 
 
+
 // ================================
-// BOTÓN: Sí, Sobrescribir
-// FUNCIONALIDAD: Reemplaza lote pendiente, genera nuevo lote y reasigna solicitudes
+// BLOQUE: Generar nuevo lote y resumen
 // ================================
 
-// 1. Cambiar estado del lote pendiente a "Reemplazado"
-Patch(
-    sng_Lotes, 
-    LookUp(sng_Lotes, lote_LoteID = varLotePendiente.lote_LoteID),
-    {
-        lote_Estado: "Reemplazado"
-    }
-);
-
-// 2. Generar nuevo ID de lote
+// 1. Generar nuevo ID de lote
 Set(
     varLoteIDGenerado,
     Left(currentUser.userPrincipalName, Find("@", currentUser.userPrincipalName)) & Text(Now(), "yyymmdd-hhmm")
 );
 
-// 3. Asignar nuevo lote a las solicitudes aprobadas sin lote
+// 2. Asignar lote a solicitudes aprobadas sin lote
 ForAll(
     colSolicitudesAprobadasSinLote,
     Patch(
@@ -130,13 +120,16 @@ ForAll(
     )
 );
 
-// 4. Recolectar todas las solicitudes asociadas al nuevo lote
+// 3. Recolectar todas las solicitudes asociadas al nuevo lote
 ClearCollect(
     colSolicitudesConNuevoLote,
-    Filter(sng_solicitudes, sng_loteID = varLoteIDGenerado)
+    Filter(
+        sng_solicitudes,
+        sng_loteID = varLoteIDGenerado
+    )
 );
 
-// 5. Agrupar por aprobador y generar resumen
+// 4. Agrupar por aprobador y generar resumen
 ClearCollect(
     colResumenPorAprobador,
     AddColumns(
@@ -153,7 +146,7 @@ ClearCollect(
     )
 );
 
-// 6. Crear nuevo lote en Dataverse
+// 5. Crear nuevo lote en Dataverse
 ForAll(
     colResumenPorAprobador,
     Patch(
@@ -171,5 +164,80 @@ ForAll(
     )
 );
 
-// 7. Cerrar popup
+
+// ================================
+// BOTÓN: Sí, Sobrescribir
+// ================================
+
+// Cambiar estado del lote actual a "Reemplazado"
+Patch(
+    sng_Lotes, 
+    LookUp(sng_Lotes, lote_LoteID = varLotePendiente.lote_LoteID),
+    {
+        lote_Estado: "Reemplazado"
+    }
+);
+
+// Ejecutar lógica de generación del nuevo lote
+/* INICIO BLOQUE REUTILIZABLE */
+// ================================
+// BLOQUE: Generar nuevo lote y resumen
+// ================================
+Set(
+    varLoteIDGenerado,
+    Left(currentUser.userPrincipalName, Find("@", currentUser.userPrincipalName)) & Text(Now(), "yyymmdd-hhmm")
+);
+
+ForAll(
+    colSolicitudesAprobadasSinLote,
+    Patch(
+        sng_solicitudes,
+        { Solicitudes: ThisRecord.Solicitudes },
+        { sng_loteID: varLoteIDGenerado }
+    )
+);
+
+ClearCollect(
+    colSolicitudesConNuevoLote,
+    Filter(
+        sng_solicitudes,
+        sng_loteID = varLoteIDGenerado
+    )
+);
+
+ClearCollect(
+    colResumenPorAprobador,
+    AddColumns(
+        GroupBy(
+            colSolicitudesConNuevoLote,
+            cr8bd_manager,
+            Registros
+        ),
+        NombreManager, First(Registros).sng_solicitudAprobador1Nombre,
+        TotalCosteEstimado, Sum(Registros, sng_solicitudCosteEstimado),
+        Beneficiarios, Concat(Registros, sng_solicitudBeneficiarioEmail, ";"),
+        FechaLote, Now(),
+        ID, varLoteIDGenerado
+    )
+);
+
+ForAll(
+    colResumenPorAprobador,
+    Patch(
+        sng_Lotes,
+        Defaults(sng_Lotes),
+        {
+            lote_LoteID: ID,
+            lote_Estado: "Pendiente",
+            lote_CantidadSolicitudes: CountRows(Registros),
+            lote_CreadoFecha: FechaLote,
+            lote_CreadoPorEmail: currentUser.userPrincipalName,
+            lote_CreadoPorNombre: currentUser.displayName,
+            lote_TotalCosteEstimado: TotalCosteEstimado
+        }
+    )
+)
+/* FIN BLOQUE REUTILIZABLE */
+
+// Cerrar popup
 Set(varPopUpAlertaLote, false);
