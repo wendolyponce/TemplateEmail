@@ -1,14 +1,31 @@
-// ==============================================
-// BOTÓN: Generar Lote
-// ==============================================
+Onstart:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-// 1. Buscar lote pendiente
+
+// ========== Versión y usuario ==========
+Set(varVersion, "V1.0.7");
+Set(varPopUpAlertaLote, false);
+Set(currentUser, Office365Users.MyProfileV2());
+
+// Rol del usuario
 Set(
-    varLotePendiente,
-    LookUp(sng_Lotes, lote_Estado = "Pendiente")
+    varRolUsuario,
+    LookUp(
+        sng_usuarios,
+        sng_usuarioEmail1 = currentUser.userPrincipalName ||
+        sng_usuarioEmail2 = currentUser.userPrincipalName,
+        sng_usuarioRol
+    )
 );
+Set(varRolController, varRolUsuario = "Controller");
 
-// 2. Recolectar solicitudes aprobadas sin lote
+// Limpiar colecciones
+Clear(colSolicitudesLotePendiente);
+Clear(ResumenSolicitudesLotePendiente);
+Clear(colSolicitudesAprobadasSinLote);
+
+// ==========================
+// Recolectar solicitudes aprobadas sin lote
+// ==========================
 ClearCollect(
     colSolicitudesAprobadasSinLote,
     ShowColumns(
@@ -20,80 +37,113 @@ ClearCollect(
         sng_solicitudAprobador1Nombre,
         sng_solicitudCosteEstimado,
         sng_solicitudBeneficiarioEmail,
-        cr8bd_manager,
-        Solicitudes
+        Solicitudes // ID de solicitud
     )
 );
 
-// 3. Evaluar si hay solicitudes aprobadas sin lote
 If(
     CountRows(colSolicitudesAprobadasSinLote) = 0,
-    
-    // 3.1 No hay solicitudes → notificar
-    Notify("No hay solicitudes aprobadas sin lote. No se generó ningún lote.", NotificationType.Warning),
-
-    // 3.2 Hay solicitudes aprobadas
-    If(
-        !IsBlank(varLotePendiente),
-
-        // 3.2.1 Existe lote pendiente → mostrar popup
-        Set(varPopUpAlertaLote, true),
-
-        // 3.2.2 No existe lote pendiente → generar nuevo lote directamente
-        // ================================
-        // BLOQUE REUTILIZABLE: Generar nuevo lote y resumen
-        // ================================
-        
-        Set(
-            varLoteIDGenerado,
-            Left(currentUser.userPrincipalName, Find("@", currentUser.userPrincipalName)) & Text(Now(), "yyymmdd-hhmm")
-        );
-
-        ForAll(
-            colSolicitudesAprobadasSinLote,
-            Patch(
-                sng_solicitudes,
-                { Solicitudes: ThisRecord.Solicitudes },
-                { sng_loteID: varLoteIDGenerado }
-            )
-        );
-
         ClearCollect(
-            colSolicitudesConNuevoLote,
-            Filter(sng_solicitudes, sng_loteID = varLoteIDGenerado)
-        );
-
-        ClearCollect(
-            colResumenPorAprobador,
+            colResumenSolicitudesAprobadasSinLote,
             AddColumns(
                 GroupBy(
-                    colSolicitudesConNuevoLote,
+                    colSolicitudesAprobadasSinLote,
                     cr8bd_manager,
                     Registros
                 ),
-                NombreManager, First(Registros).sng_solicitudAprobador1Nombre,
-                TotalCosteEstimado, Sum(Registros, sng_solicitudCosteEstimado),
-                Beneficiarios, Concat(Registros, sng_solicitudBeneficiarioEmail, ";"),
+                NombreManager, First(Registros).cr8bd_sng_solicitudaprobador1nombre,
+                TotalCosteEstimado, Sum(Registros, cr8bd_sng_solicitudcosteestimado),
+                Beneficiarios, Concat(Registros, cr8bd_sol_beneficiario, ";"),
                 FechaLote, Now(),
                 ID, varLoteIDGenerado
             )
         );
 
-        ForAll(
-            colResumenPorAprobador,
-            Patch(
-                sng_Lotes,
-                Defaults(sng_Lotes),
-                {
-                    lote_LoteID: ID,
-                    lote_Estado: "Pendiente",
-                    lote_CantidadSolicitudes: CountRows(Registros),
-                    lote_CreadoFecha: FechaLote,
-                    lote_CreadoPorEmail: currentUser.userPrincipalName,
-                    lote_CreadoPorNombre: currentUser.displayName,
-                    lote_TotalCosteEstimado: TotalCosteEstimado
-                }
-            )
+);
+
+// ==========================
+// Recolectar solicitudes aprobadas con lote Pendiente
+// ==========================
+
+// 1. Cargar el único lote pendiente existente
+Set(varLotePendiente,LookUp(sng_Lotes, lote_Estado = "Pendiente"));
+
+// 2. Si existe, asignar su ID a varLoteIDGenerado
+If(
+    !IsBlank(varLotePendiente),
+    Set(varLoteIDGenerado, varLotePendiente.lote_LoteID),
+    Set(varLoteIDGenerado, Blank())
+);
+
+// 3. Si hay un lote pendiente, cargar sus solicitudes
+If(
+    !IsBlank(varLoteIDGenerado),
+    ClearCollect(
+        colSolicitudesLotePendiente,
+        ShowColumns(
+            Filter(sng_solicitudes, sng_loteID = varLoteIDGenerado),
+            sng_solicitudAprobador1Email,
+            sng_solicitudAprobador1Nombre,
+            sng_solicitudBeneficiarioEmail,
+            sng_solicitudBeneficiarioNombre,
+            sng_solicitudCosteEstimado,
+            Solicitudes
+        )
+    ),
+    Clear(colSolicitudesLotePendiente)
+);
+
+// 4. Generar resumen por manager si hay solicitudes
+If(
+    !IsEmpty(colSolicitudesLotePendiente),
+    ClearCollect(
+        ResumenSolicitudesLotePendiente,
+        AddColumns(
+            GroupBy(
+                colSolicitudesLotePendiente,
+                cr8bd_manager,
+                Registros
+            ),
+            NombreManager, First(Registros).cr8bd_sng_solicitudaprobador1nombre,
+            Total, Sum(Registros, cr8bd_sng_solicitudcosteestimado),
+            Usuarios_en_peticion, Concat(Registros, cr8bd_sol_beneficiario, ";"),
+            FechaAgrupacion, Now(),
+            ID, varLoteIDGenerado
+        )
+    )
+);
+
+// 5. Métricas: Cantidad de solicitudes con/sin lote
+Set(
+    varCantidadSinLote,
+    CountRows(
+        Filter(
+            sng_solicitudes,
+            sng_solicitudEstado = AppEstados.AprobadoAprobador1 &&
+            IsBlank(sng_loteID)
+        )
+    )
+);
+Set(
+    varCantidadConLote,
+    CountRows(
+        Filter(
+            sng_solicitudes,
+            sng_solicitudEstado = AppEstados.AprobadoAprobador1 &&
+            !IsBlank(sng_loteID)
+        )
+    )
+);
+
+
+//========== Aprobaciones pendientes para usuario actual ==========
+Set(
+    varAprobacionesPendientes,
+    CountRows(
+        Filter(
+            sng_solicitudes,
+            sng_solicitudAprobador1Email = currentUser.userPrincipalName &&
+            sng_solicitudEstado = AppEstados.PendienteAprobador1
         )
     )
 );
@@ -101,90 +151,81 @@ If(
 
 
 
+GENERAR LOTE::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 
 
-// ==============================================
-// BOTÓN: Sí, Sobrescribir
-// ==============================================
 
-// 1. Recolectar solicitudes asociadas al lote pendiente actual
+// Buscar lote pendiente existente
+Set(varLotePendiente,LookUp(sng_Lotes, lote_Estado = "Pendiente"));
+
+// ==========================
+// Paso 1. Recolectar solicitudes aprobadas sin lote
+// ==========================
 ClearCollect(
-    colSolicitudesAntiguas,
-    Filter(
-        sng_solicitudes,
-        sng_loteID = varLotePendiente.lote_LoteID
+    colSolicitudesAprobadasSinLote,
+    ShowColumns(
+        Filter(
+            sng_solicitudes,
+            sng_solicitudEstado = AppEstados.AprobadoAprobador1 && IsBlank(sng_loteID)
+        ),
+        sng_solicitudAprobador1Email,
+        sng_solicitudAprobador1Nombre,
+        sng_solicitudCosteEstimado,
+        sng_solicitudBeneficiarioEmail,
+        Solicitudes // ID de solicitud
     )
 );
 
-// 2. Validar si hay solicitudes nuevas o antiguas que sobrescribir
+// ==========================
+// Paso 2. Validar si hay solicitudes aprobadas sin lote
+// ==========================
 If(
-    CountRows(colSolicitudesAprobadasSinLote) = 0 && CountRows(colSolicitudesAntiguas) = 0,
-    
-    // 2.1 No hay solicitudes que mover → notificar
-    Notify("No hay solicitudes nuevas ni existentes que reasignar. No se generó ningún lote.", NotificationType.Warning),
+    CountRows(colSolicitudesAprobadasSinLote) = 0,
 
-    // 2.2 Hay al menos una solicitud para procesar
-    With(
-        { newLoteID: Left(currentUser.userPrincipalName, Find("@", currentUser.userPrincipalName)) & Text(Now(), "yyymmdd-hhmm") },
+    //No hay solicitudes -> Notificar y no hacer nada más
+    Notify("No hay solicitudes aprobadas sin lote. No se generó ningún lote.", NotificationType.Warning),
 
-        // 3. Cambiar estado del lote anterior
-        Patch(
-            sng_Lotes, 
-            LookUp(sng_Lotes, lote_LoteID = varLotePendiente.lote_LoteID),
-            { lote_Estado: "Reemplazado" }
-        );
+    //Si hay solicitudes -> Continuar
+    If(
+        !IsBlank(varLotePendiente),
 
-        // 4. Asignar nuevo lote ID
-        Set(varLoteIDGenerado, newLoteID);
+        // Hay un lote pendiente -> mostrar popup
+        Set(varPopUpAlertaLote, true),
 
-        // 5. Reasignar solicitudes antiguas
-        ForAll(
-            colSolicitudesAntiguas,
-            Patch(
-                sng_solicitudes,
-                { Solicitudes: ThisRecord.Solicitudes },
-                { sng_loteID: varLoteIDGenerado }
-            )
-        );
+        // No hay un lote pendiente -> generar un lote nuevo MISMO QUE SOBREESCRIBIR
+        Set(varLoteIDGenerado,Left(currentUser.userPrincipalName, Find("@", currentUser.userPrincipalName)) & Text(Now(), "yyymmdd-hhmm"));
 
-        // 6. Asignar lote a solicitudes nuevas
+        // 1. Marcar solicitudes anteriores con el nuevo lote ID
         ForAll(
             colSolicitudesAprobadasSinLote,
             Patch(
                 sng_solicitudes,
-                { Solicitudes: ThisRecord.Solicitudes },
+                { Solicitudes: ThisRecord.cr8bd_solicitudesid},
                 { sng_loteID: varLoteIDGenerado }
             )
         );
 
-        // ================================
-        // BLOQUE REUTILIZABLE: Generar nuevo lote y resumen
-        // ================================
-        
+        // 2. Agrupar por aprobador y generar resumen
         ClearCollect(
-            colSolicitudesConNuevoLote,
-            Filter(sng_solicitudes, sng_loteID = varLoteIDGenerado)
-        );
-
-        ClearCollect(
-            colResumenPorAprobador,
+            colResumenSolicitudesAprobadasSinLote,
             AddColumns(
                 GroupBy(
-                    colSolicitudesConNuevoLote,
+                    colSolicitudesAprobadasSinLote,
                     cr8bd_manager,
                     Registros
                 ),
-                NombreManager, First(Registros).sng_solicitudAprobador1Nombre,
-                TotalCosteEstimado, Sum(Registros, sng_solicitudCosteEstimado),
-                Beneficiarios, Concat(Registros, sng_solicitudBeneficiarioEmail, ";"),
+                NombreManager, First(Registros).cr8bd_sng_solicitudaprobador1nombre,
+                TotalCosteEstimado, Sum(Registros, cr8bd_sng_solicitudcosteestimado),
+                Beneficiarios, Concat(Registros, cr8bd_sol_beneficiario, ";"),
                 FechaLote, Now(),
                 ID, varLoteIDGenerado
             )
-        );
+        ); 
 
+        // 3. Crear el nuevo lote en Dataverse
         ForAll(
-            colResumenPorAprobador,
+            colResumenSolicitudesAprobadasSinLote,
             Patch(
                 sng_Lotes,
                 Defaults(sng_Lotes),
@@ -200,9 +241,6 @@ If(
             )
         )
     );
-
-    // 7. Cerrar popup
-    Set(varPopUpAlertaLote, false)
 );
 
 
@@ -210,3 +248,86 @@ If(
 
 
 
+
+
+
+
+
+Boton de si sobreescribir:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+/* INICIO BLOQUE REUTILIZABLE */
+
+        // No hay un lote pendiente -> generar un lote nuevo 
+        Set(varLoteIDGenerado,Left(currentUser.userPrincipalName, Find("@", currentUser.userPrincipalName)) & Text(Now(), "yyymmdd-hhmm"));
+
+        /* PAUSE  BLOQUE REUTILIZABLE */
+//Cambiar el al lote nuevo las solicitudes del pendiente
+Patch(
+    sng_solicitudes, 
+    LookUp(sng_solicitudes, sng_loteID = varLotePendiente.lote_LoteID),
+    {
+        sng_loteID: varLoteIDGenerado
+    }
+); 
+
+//Cambiar el estado del lote a sobreescribir
+Patch(
+    sng_Lotes, 
+    LookUp(sng_Lotes, lote_LoteID = varLotePendiente.lote_LoteID),
+    {
+        lote_Estado: "Reemplazado"
+    }
+); 
+
+        /* INICIO NUEVAMENTE BLOQUE REUTILIZABLE */
+
+        // 1. Marcar solicitudes con el nuevo lote ID
+        ForAll(
+            colSolicitudesAprobadasSinLote,
+            Patch(
+                sng_solicitudes,
+                { Solicitudes: ThisRecord.cr8bd_solicitudesid},
+                { sng_loteID: varLoteIDGenerado }
+            )
+        );
+
+        // 2. Agrupar por aprobador y generar resumen
+        ClearCollect(
+            colResumenPorAprobador,
+            AddColumns(
+                GroupBy(
+                    colSolicitudesAprobadasSinLote,
+                    cr8bd_manager,
+                    Registros
+                ),
+                NombreManager, First(Registros).cr8bd_sng_solicitudaprobador1nombre,
+                TotalCosteEstimado, Sum(Registros, cr8bd_sng_solicitudcosteestimado),
+                Beneficiarios, Concat(Registros, cr8bd_sol_beneficiario, ";"),
+                FechaLote, Now(),
+                ID, varLoteIDGenerado
+            )
+        );
+
+        // 3. Crear el nuevo lote en Dataverse
+        ForAll(
+            colResumenPorAprobador,
+            Patch(
+                sng_Lotes,
+                Defaults(sng_Lotes),
+                {
+                    lote_LoteID: ID,
+                    lote_Estado: "Pendiente",
+                    lote_CantidadSolicitudes: CountRows(Registros),
+                    lote_CreadoFecha: FechaLote,
+                    lote_CreadoPorEmail: currentUser.userPrincipalName,
+                    lote_CreadoPorNombre: currentUser.displayName,
+                    lote_TotalCosteEstimado: TotalCosteEstimado
+                }
+            )
+        );
+
+        /* FIN BLOQUE REUTILIZABLE */
+
+//Cerrar popup
+Set(varPopUpAlertaLote, false);
