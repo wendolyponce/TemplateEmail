@@ -1,0 +1,103 @@
+Set(varVersion, "V1.0.7");
+
+Set(varPopUpAlertaLote, false);
+Set(currentUser, Office365Users.MyProfileV2());
+
+//Aprobaciones pendientes para usuario actual
+
+Set(varAprobacionesPendientes,
+    CountRows(
+        Filter(
+            sng_solicitudes,
+            sng_solicitudAprobador1Email = currentUser.userPrincipalName && sng_solicitudEstado = AppEstados.PendienteAprobador1
+        )
+    )
+);
+
+Set(varRolUsuario, 
+    LookUp(
+        sng_usuarios, 
+        sng_usuarioEmail1 = currentUser.userPrincipalName || sng_usuarioEmail2 = currentUser.userPrincipalName, 
+        sng_usuarioRol
+    )
+);
+
+Set(varRolController, varRolUsuario = "Controller");
+
+Clear(colSolicitud);
+Clear(colResumenManager);
+
+
+//1. Buscar el único lote pendediente (si existe)
+Set(
+    varLotePendiente,
+    LookUp(sng_Lotes, lote_Estado = "Pendiente")
+);
+
+//2. Si existe, asignar ID
+If(
+    !IsBlank(varLotePendiente), 
+        Set(varLoteIDGenerado, varLotePendiente.lote_LoteID), 
+        Set(varLoteIDGenerado, Blank())
+);
+
+//3. Si hay ID, cargar solicitudes pendientes (necesario para groupby)
+If(
+    !IsBlank(varLoteIDGenerado), 
+        ClearCollect(
+            colSolicitud,
+            ShowColumns(
+                Filter(sng_solicitudes, sng_loteID = varLoteIDGenerado),
+                    sng_solicitudAprobador1Email,
+                    sng_solicitudAprobador1Nombre,
+                    sng_solicitudImporte,
+                    sng_solicitudBeneficiarioEmail
+                )
+        )
+        ,
+        Clear(colSolicitud)
+);
+
+//4. Si hay solicitudes, generar resumen
+If(
+    !IsEmpty(colSolicitud),
+
+    ClearCollect(
+        colResumenManager,
+        AddColumns(
+            GroupBy(
+                colSolicitud,
+                'cr8bd_manager',
+                'Registros'
+            ),
+            'NombreManager', First(Registros).'cr8bd_sng_solicitudaprobador1nombre',
+            'Total', Sum(Registros,'cr8bd_importe'),
+            'Usuarios_en_peticion', Concat(Registros,'cr8bd_sol_beneficiario',";"),
+            'FechaAgrupacion', Now(),
+            'ID', varLoteIDGenerado
+        )
+    )
+);
+
+
+
+//Cantidad de solicitudes SIN LOTE, con estado AprobadorAprobador1
+Set(varCantidadSinLote, 
+    CountRows(
+        Filter(
+            sng_solicitudes, 
+            sng_solicitudEstado = AppEstados.AprobadoAprobador1 && IsBlank(sng_loteID)
+        )
+    )
+);
+
+//Cantidad de solicitudes CON LOTE, con estado AprobadorAprobador1
+Set(varCantidadConLote, 
+    CountRows(
+        Filter(
+            sng_solicitudes, 
+            sng_solicitudEstado = AppEstados.AprobadoAprobador1 && !IsBlank(sng_loteID)
+        )
+    )
+);
+
