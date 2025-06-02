@@ -13,7 +13,7 @@ Patch(
 
         // 1. Marcar solicitudes con el nuevo lote ID
         ForAll(
-            colSolicitudesAprobadas,
+            colSolicitudesAprobadasSinLote,
             Patch(
                 sng_solicitudes,
                 { Solicitudes: ThisRecord.cr8bd_solicitudesid},
@@ -26,7 +26,7 @@ Patch(
             colResumenPorAprobador,
             AddColumns(
                 GroupBy(
-                    colSolicitudesAprobadas,
+                    colSolicitudesAprobadasSinLote,
                     cr8bd_manager,
                     Registros
                 ),
