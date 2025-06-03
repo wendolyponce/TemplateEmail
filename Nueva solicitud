@@ -4,17 +4,7 @@
 // En diciembre, se cuenta hasta noviembre del año siguiente (11 meses).
 // =======================================
 
-Set(varMesActual, Month(Today()));
-Set(varAnioActual, Year(Today()));
-
-If(
-    varMesActual = 12,
-    Set(varMesesEstimados, 11), // Diciembre → hasta noviembre del próximo año
-    Set(varMesesEstimados, 11 - varMesActual + 1) // Incluye el mes actual
-);
-
 Set(varCosteEstimado, varMesesEstimados * AppDatos.Importe);
-
 
 // =======================================
 // BLOQUE 2: Validación de campos obligatorios
@@ -72,7 +62,8 @@ If(
 
                 // Metadatos
                 sng_solicitudEstado: AppEstados.PendienteAprobador1,
-                sng_solicitudFecha: Now()
+                sng_solicitudFecha: Now(), 
+                sng_solicitudFechaFin: varFechaFin
             }
         )
     );
