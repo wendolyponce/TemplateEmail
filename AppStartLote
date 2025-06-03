@@ -1,21 +1,11 @@
 // ========== Versión y usuario ==========
-Set(varVersion, "V1.0.7");
+Set(varVersion, "V1.0.8");
 Set(varPopUpAlertaLote, false);
+Set(varPopUpSubir, false);
+Set(varPopUpEditar, false);
 Set(currentUser, Office365Users.MyProfileV2());
 
-// ========== Aprobaciones pendientes para usuario actual ==========
-Set(
-    varAprobacionesPendientes,
-    CountRows(
-        Filter(
-            sng_solicitudes,
-            sng_solicitudAprobador1Email = currentUser.userPrincipalName &&
-            sng_solicitudEstado = AppEstados.PendienteAprobador1
-        )
-    )
-);
-
-// ========== Rol del usuario ==========
+// Rol del usuario
 Set(
     varRolUsuario,
     LookUp(
@@ -27,81 +17,178 @@ Set(
 );
 Set(varRolController, varRolUsuario = "Controller");
 
-// ========== Limpiar colecciones ==========
-Clear(colSolicitud);
-Clear(colResumenManager);
+// Limpiar colecciones
+Clear(colSolicitudesConLoteUltimo);
+Clear(colResumenSolicitudesConLoteUltimo);
+Clear(colSolicitudesAprobadasSinLote);
+Clear(colResumenSolicitudesAprobadasSinLote);
 
-// ========== 1. Buscar el único lote pendiente existente ==========
-Set(
-    varLotePendiente,
-    LookUp(sng_Lotes, lote_Estado = "Pendiente")
-);
 
-// ========== 2. Si existe, asignar su ID a varLoteIDGenerado ==========
-If(
-    !IsBlank(varLotePendiente),
-    Set(varLoteIDGenerado, varLotePendiente.lote_LoteID),
-    Set(varLoteIDGenerado, Blank())
-);
-
-// ========== 3. Si hay un lote pendiente, cargar sus solicitudes ==========
-If(
-    !IsBlank(varLoteIDGenerado),
-    ClearCollect(
-        colSolicitud,
-        ShowColumns(
-            Filter(sng_solicitudes, sng_loteID = varLoteIDGenerado),
+// 3. Recolectar solicitudes APROBADAS sin lote
+ClearCollect(
+    colSolicitudesAprobadasSinLote,
+    ShowColumns(
+        Filter(
+            sng_solicitudes,
+            sng_solicitudEstado = AppEstados.AprobadoAprobador1 && IsBlank(sng_loteID)
+        ),
             sng_solicitudAprobador1Email,
             sng_solicitudAprobador1Nombre,
-            sng_solicitudImporte,
+            sng_solicitudAprobador1ID,
             sng_solicitudBeneficiarioEmail,
-            cr8bd_manager,
-            cr8bd_sng_solicitudaprobador1nombre,
-            cr8bd_sng_solicitudcosteestimado,
-            cr8bd_sol_beneficiario
-        )
-    ),
-    Clear(colSolicitud)
+            sng_solicitudBeneficiarioNombre,
+            sng_solicitudBeneficiarioID,
+            sng_solicitudPeticionarioEmail,
+            sng_solicitudPeticionarioNombre,
+            sng_solicitudPeticionarioID,
+            sng_solicitudCosteEstimado,
+            sng_solicitudCECO, 
+            sng_solicitudEntidad,
+            sng_solicitudProducto,
+            sng_solicitudFecha, 
+            sng_solicitudFechaFin,
+            Solicitudes
+    )
 );
 
-// ========== 4. Generar resumen por manager si hay solicitudes ==========
+//Resumir solicitudes aprobadas SIN lote por Manager
 If(
-    !IsEmpty(colSolicitud),
+    CountRows(colSolicitudesAprobadasSinLote) > 0,
+        ClearCollect(
+            colResumenSolicitudesAprobadasSinLote,
+            AddColumns(
+                GroupBy(
+                    colSolicitudesAprobadasSinLote,
+                    cr8bd_manager,
+                    Registros
+                ),
+                CECO, First(Registros).cr8bd_sol_solicitudceco,
+                Entidad, First(Registros).cr8bd_sol_solicitudentidad,
+                ManagerNombre, First(Registros).cr8bd_sng_solicitudaprobador1nombre,
+                ManagerID, First(Registros).cr8bd_sng_aprobador1id,
+                BeneficiariosNombre, Concat(Registros, cr8bd_sol_beneficiario, ","),
+                BeneficiariosID, Concat(Registros, cr8bd_sng_solicitudbeneficiarioid, ","),
+                BeneficiariosEmail, Concat(Registros, cr8bd_sng_solicitudbeneficiarionombre, ","),
+                PeticionariosNombre, Concat(Registros, cr8bd_sng_solicitudpeticionarionombre, ","),
+                PeticionariosID, Concat(Registros, cr8bd_sng_solicitudpeticionarioid, ","),
+                PeticionariosEmail, Concat(Registros, cr8bd_sng_solicitudpeticionarionombre, ","),
+                Producto, First(Registros).cr8bd_producto,
+                Total, Round(Sum(Registros, cr8bd_sng_solicitudcosteestimado),2),
+                Usuarios_en_peticion, Concat(Registros, cr8bd_sol_beneficiario, ","),
+                FechaAgrupacion, Now(),
+                FechasFin, Concat(Registros, Text(cr8bd_sng_solicitudfechafin, "dd/mm/yy"), ","),
+                FechasIni, Concat(Registros, Text(cr8bd_sng_solicitudfecha, "dd/mm/yy"), ","),
+                SolicitudID, Concat(Registros, cr8bd_solicitudesid, ","),   
+                ID, varLoteIDGenerado & "@" & First(Registros).cr8bd_sng_aprobador1id
+            )
+        );
+
+);
+
+
+//:::::::::::::::::
+
+// 1. Recolectar solicitudes APROBADAS con lote pendiente
+ClearCollect(
+    colLotesPendientes,
+    Filter(sng_Lotes, lote_Estado = "Pendiente")
+);
+
+
+
+ClearCollect(
+    colSolicitudesConLoteUltimo,
+    ShowColumns(
+        Filter(
+            sng_solicitudes,
+            sng_loteID in colLotesPendientes.lote_LoteID
+        ),
+        sng_solicitudAprobador1Email,
+        sng_solicitudAprobador1Nombre,
+        sng_solicitudAprobador1ID,
+        sng_solicitudBeneficiarioEmail,
+        sng_solicitudBeneficiarioNombre,
+        sng_solicitudBeneficiarioID,
+        sng_solicitudPeticionarioEmail,
+        sng_solicitudPeticionarioNombre,
+        sng_solicitudPeticionarioID,
+        sng_solicitudCosteEstimado,
+        sng_solicitudCECO,
+        sng_solicitudEntidad,
+        sng_solicitudProducto,
+        sng_solicitudFecha,
+        sng_solicitudFechaFin,
+        Solicitudes,
+        sng_loteID
+    )
+);
+// 2. Resumen solicitudes con lote pendiente por manager
+If(
+    !IsEmpty(colSolicitudesConLoteUltimo),
     ClearCollect(
-        colResumenManager,
+        colResumenSolicitudesConLoteUltimo,
         AddColumns(
             GroupBy(
-                colSolicitud,
+                colSolicitudesConLoteUltimo,
                 cr8bd_manager,
                 Registros
             ),
-            NombreManager, First(Registros).cr8bd_sng_solicitudaprobador1nombre,
-            Total, Sum(Registros, cr8bd_sng_solicitudcosteestimado),
-            Usuarios_en_peticion, Concat(Registros, cr8bd_sol_beneficiario, ";"),
+            CECO, First(Registros).cr8bd_sol_solicitudceco,
+            Entidad, First(Registros).cr8bd_sol_solicitudentidad,
+            ManagerNombre, First(Registros).cr8bd_sng_solicitudaprobador1nombre,
+            ManagerID, First(Registros).cr8bd_sng_aprobador1id,
+            BeneficiariosNombre, Concat(Registros, cr8bd_sol_beneficiario, ","),
+            BeneficiariosID, Concat(Registros, cr8bd_sng_solicitudbeneficiarioid, ","),
+            BeneficiariosEmail, Concat(Registros, cr8bd_sng_solicitudbeneficiarionombre, ","),
+            PeticionariosNombre, Concat(Registros, cr8bd_sng_solicitudpeticionarionombre, ","),
+            PeticionariosID, Concat(Registros, cr8bd_sng_solicitudpeticionarioid, ","),
+            PeticionariosEmail, Concat(Registros, cr8bd_sng_solicitudpeticionarionombre, ","),
+            Producto, First(Registros).cr8bd_producto,
+            Total, Round(Sum(Registros, cr8bd_sng_solicitudcosteestimado),2),
+            Usuarios_en_peticion, Concat(Registros, cr8bd_sol_beneficiario, ","),
             FechaAgrupacion, Now(),
-            ID, varLoteIDGenerado
+            FechasFin, Concat(Registros, Text(cr8bd_sng_solicitudfechafin, "dd/mm/yy"), ","),
+            FechasIni, Concat(Registros, Text(cr8bd_sng_solicitudfecha, "dd/mm/yy"), ","),
+            SolicitudID, Concat(Registros, cr8bd_solicitudesid, ","),
+            ID, varLoteIDGenerado & "@" & First(Registros).cr8bd_sng_aprobador1id
         )
     )
 );
 
-// ========== 5. Métricas: Cantidad de solicitudes con/sin lote ==========
-Set(
-    varCantidadSinLote,
-    CountRows(
-        Filter(
-            sng_solicitudes,
-            sng_solicitudEstado = AppEstados.AprobadoAprobador1 &&
-            IsBlank(sng_loteID)
-        )
+
+//Calcular fecha final 30 nov. 
+
+Set(varMesActual, Month(Today()));
+Set(varAnioActual, Year(Today()));
+
+If(
+    varMesActual = 12,
+    Set(varMesesEstimados, 11), // Diciembre → hasta noviembre del próximo año
+    Set(varMesesEstimados, 11 - varMesActual + 1) // Incluye el mes actual
+);
+
+Set(varFechaFin, 
+    If(
+    varMesActual = 12,
+    Date(varAnioActual + 1, 11, 30),
+    Date(varAnioActual, 11, 30) 
     )
 );
+
+// Coste mensual fijo
+Set(varCosteMes, 38.7);
+
+// Coste total desde hoy hasta 30 nov:
 Set(
-    varCantidadConLote,
-    CountRows(
-        Filter(
-            sng_solicitudes,
-            sng_solicitudEstado = AppEstados.AprobadoAprobador1 &&
-            !IsBlank(sng_loteID)
-        )
-    )
+  varCosteEstimado,
+  Round(
+    If(
+      Day(Today()) > 15,
+      // Si hoy es día 16–31: el mes actual vale medio mes y el resto meses completos
+      varCosteMes * (varMesesEstimados - 0.5),
+      // Si hoy es día 1–15: todos los meses (incluyendo el actual) van completos
+      varCosteMes * varMesesEstimados
+    ),
+    2  // redondear a 2 decimales
+  )
 );
