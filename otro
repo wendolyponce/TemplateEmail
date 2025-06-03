@@ -1,0 +1,17 @@
+// Coste mensual fijo
+Set(varCosteMes, 38.7);
+
+// Coste total desde hoy hasta 30 nov:
+Set(
+  varCosteEstimado,
+  Round(
+    If(
+      Day(Today()) > 15,
+      // Si hoy es día 16–31: el mes actual vale medio mes y el resto meses completos
+      varCosteMes * (varMesesEstimados - 0.5),
+      // Si hoy es día 1–15: todos los meses (incluyendo el actual) van completos
+      varCosteMes * varMesesEstimados
+    ),
+    2  // redondear a 2 decimales
+  )
+);
