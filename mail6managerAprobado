@@ -1,0 +1,70 @@
+<div style="max-width: 600px;
+            margin: auto;
+            background-color: #ffffff;
+            border: 1px solid #dddddd;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            font-size: 15px;
+            color: #333;">
+
+  <!-- Título -->
+  <h2 style="color: #D92D20;">
+    @{variables('HeaderEmail')}
+  </h2>
+
+  <!-- Español -->
+  <div style="margin-bottom: 40px;">
+    <strong style="color: #D92D20;">Solicitud aprobada por el Manager</strong><br><br>
+    <p>
+      La solicitud para el producto <strong>@{triggerOutputs()?['body/cr8bd_producto']}</strong> ha sido <strong>aprobada por el Manager</strong>.<br><br>
+      <strong>Solicitante:</strong> @{triggerOutputs()?['body/cr8bd_solicitadopor']}<br>
+      <strong>Beneficiario:</strong> @{triggerOutputs()?['body/cr8bd_sol_beneficiario']}<br>
+      <strong>Manager:</strong> @{triggerOutputs()?['body/cr8bd_manager']}<br>
+      <strong>Estado actual:</strong> @{variables('Estado')}<br><br>
+    </p>
+
+    <!-- Comentario del Manager (solo si existe) -->
+    @{if(
+      and(
+        not(equals(triggerOutputs()?['body/cr8bd_comentarios_manager'], null)),
+        not(equals(triggerOutputs()?['body/cr8bd_comentarios_manager'], ''))
+      ),
+      concat(
+        '<div style="margin-top: 15px;"><strong style="color: #D92D20;">Comentario del Manager:</strong><br>',
+        triggerOutputs()?['body/cr8bd_comentarios_manager'],
+        '</div>'
+      ),
+      ''
+    )}
+  </div>
+
+  <!-- Línea divisoria gris -->
+  <hr style="margin: 40px 0; border: none; border-top: 1px solid #dddddd;">
+
+  <!-- Inglés -->
+  <div>
+    <strong style="color: #D92D20;">Request Approved by Manager</strong><br><br>
+    <p>
+      The request for the product <strong>@{triggerOutputs()?['body/cr8bd_producto']}</strong> has been <strong>approved by the Manager</strong>.<br><br>
+      <strong>Requester:</strong> @{triggerOutputs()?['body/cr8bd_solicitadopor']}<br>
+      <strong>Beneficiary:</strong> @{triggerOutputs()?['body/cr8bd_sol_beneficiario']}<br>
+      <strong>Manager:</strong> @{triggerOutputs()?['body/cr8bd_manager']}<br>
+      <strong>Current status:</strong> @{variables('Estado')}<br><br>
+    </p>
+
+    <!-- Manager Comment (if exists) -->
+    @{if(
+      and(
+        not(equals(triggerOutputs()?['body/cr8bd_comentarios_manager'], null)),
+        not(equals(triggerOutputs()?['body/cr8bd_comentarios_manager'], ''))
+      ),
+      concat(
+        '<div style="margin-top: 15px;"><strong style="color: #D92D20;">Manager\'s Comment:</strong><br>',
+        triggerOutputs()?['body/cr8bd_comentarios_manager'],
+        '</div>'
+      ),
+      ''
+    )}
+  </div>
+
+</div>
