@@ -12,14 +12,15 @@
   <div style="margin-bottom: 40px;">
     <strong style="color: #D92D20;">Solicitud rechazada por el Manager</strong><br><br>
     <p>
-      La solicitud para el producto <strong>@{triggerOutputs()?['body/cr8bd_producto']}</strong> ha sido <strong>rechazada por el Manager</strong>.<br><br>
+      La solicitud para el producto <strong>@{triggerOutputs()?['body/cr8bd_producto']}</strong> ha sido <strong>rechazada por el Manager</strong>.
+    </p>
+    <p>
       <strong>Solicitante:</strong> @{triggerOutputs()?['body/cr8bd_solicitadopor']}<br>
       <strong>Beneficiario:</strong> @{triggerOutputs()?['body/cr8bd_sol_beneficiario']}<br>
       <strong>Manager:</strong> @{triggerOutputs()?['body/cr8bd_manager']}<br>
-      <strong>Estado actual:</strong> @{variables('Estado')}<br><br>
+      <strong>Estado actual:</strong> @{variables('Estado')}
     </p>
-
-    <p style="margin-top: 15px;">
+    <p>
       <strong style="color: #D92D20;">Comentario del Manager:</strong><br>
       @{triggerOutputs()?['body/cr8bd_comentarios_manager']}
     </p>
@@ -30,14 +31,15 @@
   <div>
     <strong style="color: #D92D20;">Request Rejected by Manager</strong><br><br>
     <p>
-      The request for the product <strong>@{triggerOutputs()?['body/cr8bd_producto']}</strong> has been <strong>rejected by the Manager</strong>.<br><br>
+      The request for the product <strong>@{triggerOutputs()?['body/cr8bd_producto']}</strong> has been <strong>rejected by the Manager</strong>.
+    </p>
+    <p>
       <strong>Requester:</strong> @{triggerOutputs()?['body/cr8bd_solicitadopor']}<br>
       <strong>Beneficiary:</strong> @{triggerOutputs()?['body/cr8bd_sol_beneficiario']}<br>
       <strong>Manager:</strong> @{triggerOutputs()?['body/cr8bd_manager']}<br>
-      <strong>Current status:</strong> @{variables('Estado')}<br><br>
+      <strong>Current status:</strong> @{variables('Estado')}
     </p>
-
-    <p style="margin-top: 15px;">
+    <p>
       <strong style="color: #D92D20;">Manager's Comment:</strong><br>
       @{triggerOutputs()?['body/cr8bd_comentarios_manager']}
     </p>
