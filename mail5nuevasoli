@@ -21,7 +21,7 @@
 
       <strong>Solicitante:</strong> @{triggerOutputs()?['body/cr8bd_solicitadopor']}<br>
       <strong>Beneficiario:</strong> @{triggerOutputs()?['body/cr8bd_sol_beneficiario']}<br>
-      <strong>Aprobador:</strong> @{triggerOutputs()?['body/cr8bd_manager']}<br>
+      <strong>Manager:</strong> @{triggerOutputs()?['body/cr8bd_manager']}<br>
       <strong>Estado inicial:</strong> @{variables('Estado')}<br><br>
 
       Recibirá notificaciones a medida que la solicitud avance en el proceso de aprobación.
@@ -40,7 +40,7 @@
 
       <strong>Requester:</strong> @{triggerOutputs()?['body/cr8bd_solicitadopor']}<br>
       <strong>Beneficiary:</strong> @{triggerOutputs()?['body/cr8bd_sol_beneficiario']}<br>
-      <strong>Approver:</strong> @{triggerOutputs()?['body/cr8bd_manager']}<br>
+      <strong>Manager:</strong> @{triggerOutputs()?['body/cr8bd_manager']}<br>
       <strong>Initial status:</strong> @{variables('Estado')}<br><br>
 
       You will receive updates as the request progresses through the approval workflow.
