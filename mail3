@@ -1,0 +1,62 @@
+<div style="max-width: 600px;
+            margin: auto;
+            background-color: #ffffff;
+            border: 1px solid #dddddd;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            font-size: 15px;
+            color: #333;">
+
+  <!-- Título -->
+  <h2 style="color: #D92D20;">
+    @{variables('HeaderEmail')}
+  </h2>
+
+  <!-- Sección en español -->
+  <div style="margin-bottom: 40px;">
+    <strong style="color: #D92D20;">Estado de aprobación para ChatGPT</strong><br><br>
+    <p>
+      Felicidades <strong>@{triggerOutputs()?['body/cr8bd_sol_beneficiario']}</strong>,<br><br>
+      Tu solicitud ha sido aprobada.<br><br>
+      Para acceder a tu cuenta de ChatGPT:<br>
+      Solicita el acceso a través de <strong>Sailpoint</strong> para habilitar el inicio de sesión único (SSO).<br>
+      <a href="https://santandernet.sharepoint.com/sites/iamprotect/SitePages/en/Solicitud-de-Accesos.aspx?CT=1747147216617&OR=OWA-NT-Mail&CID=f630ebf2-dfe3-191b-c3e0-e9977b80e49b"
+         target="_blank" style="color: #D92D20;">
+        Consulta aquí cómo hacerlo.
+      </a><br><br>
+      Una vez hecho, haz clic en el siguiente botón y te enviaremos tus credenciales.<br>
+      Revisa también tu bandeja de spam para encontrar el correo de OpenAI.<br><br>
+      ¡Disfrútalo y potencia tu trabajo!
+    </p>
+    <a href="https://formulario-accion.com" target="_blank"
+       style="display:inline-block; padding:10px 20px; background-color:#D92D20; color:white; text-decoration:none; border-radius:5px;">
+      Solicitar credenciales
+    </a>
+  </div>
+
+  <!-- Línea divisoria gris (#dddddd, 1px) -->
+  <hr style="margin: 40px 0; border: none; border-top: 1px solid #dddddd;">
+
+  <!-- Sección en inglés -->
+  <div>
+    <strong style="color: #D92D20;">Approval Status for ChatGPT</strong><br><br>
+    <p>
+      Congratulations <strong>@{triggerOutputs()?['body/cr8bd_sol_beneficiario']}</strong>,<br><br>
+      Your request has been approved.<br><br>
+      In order to get access to your ChatGPT account:<br>
+      Make a request through <strong>Sailpoint</strong> to enable your single-sign-on.<br>
+      <a href="https://santandernet.sharepoint.com/sites/iamprotect/SitePages/en/Solicitud-de-Accesos.aspx?CT=1747147216617&OR=OWA-NT-Mail&CID=f630ebf2-dfe3-191b-c3e0-e9977b80e49b"
+         target="_blank" style="color: #D92D20;">
+        Check here how to do it.
+      </a><br><br>
+      Once you've done that, click the button below and we’ll send you your credentials.<br>
+      Make sure to check your spam folder for the OpenAI welcome email.<br><br>
+      Enjoy it and boost your work!
+    </p>
+    <a href="https://formulario-accion.com" target="_blank"
+       style="display:inline-block; padding:10px 20px; background-color:#D92D20; color:white; text-decoration:none; border-radius:5px;">
+      Request credentials
+    </a>
+  </div>
+
+</div>
