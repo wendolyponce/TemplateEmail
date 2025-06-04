@@ -1,0 +1,50 @@
+<div style="max-width: 600px;
+            margin: auto;
+            background-color: #ffffff;
+            border: 1px solid #dddddd;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            font-size: 15px;
+            color: #333;">
+
+  <!-- Título -->
+  <h2 style="color: #D92D20;">
+    @{variables('HeaderEmail')}
+  </h2>
+
+  <!-- Español -->
+  <div style="margin-bottom: 40px;">
+    <strong style="color: #D92D20;">Nueva solicitud registrada para ChatGPT</strong><br><br>
+    <p>
+      Se ha registrado una nueva solicitud para el producto <strong>@{triggerOutputs()?['body/cr8bd_producto']}</strong>.<br><br>
+      A continuación, se presentan los detalles principales:<br><br>
+
+      <strong>Solicitante:</strong> @{triggerOutputs()?['body/cr8bd_solicitadopor']}<br>
+      <strong>Beneficiario:</strong> @{triggerOutputs()?['body/cr8bd_sol_beneficiario']}<br>
+      <strong>Aprobador:</strong> @{triggerOutputs()?['body/cr8bd_manager']}<br>
+      <strong>Estado inicial:</strong> @{variables('Estado')}<br><br>
+
+      Recibirá notificaciones a medida que la solicitud avance en el proceso de aprobación.
+    </p>
+  </div>
+
+  <!-- Línea divisoria gris -->
+  <hr style="margin: 40px 0; border: none; border-top: 1px solid #dddddd;">
+
+  <!-- Inglés -->
+  <div>
+    <strong style="color: #D92D20;">New ChatGPT Access Request Submitted</strong><br><br>
+    <p>
+      A new request has been submitted for the product <strong>@{triggerOutputs()?['body/cr8bd_producto']}</strong>.<br><br>
+      Below are the main details:<br><br>
+
+      <strong>Requester:</strong> @{triggerOutputs()?['body/cr8bd_solicitadopor']}<br>
+      <strong>Beneficiary:</strong> @{triggerOutputs()?['body/cr8bd_sol_beneficiario']}<br>
+      <strong>Approver:</strong> @{triggerOutputs()?['body/cr8bd_manager']}<br>
+      <strong>Initial status:</strong> @{variables('Estado')}<br><br>
+
+      You will receive updates as the request progresses through the approval workflow.
+    </p>
+  </div>
+
+</div>
