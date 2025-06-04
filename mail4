@@ -1,0 +1,40 @@
+<div style="max-width: 600px;
+            margin: auto;
+            background-color: #ffffff;
+            border: 1px solid #dddddd;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            font-size: 15px;
+            color: #333;">
+
+  <!-- Título -->
+  <h2 style="color: #D92D20;">
+    @{variables('HeaderEmail')}
+  </h2>
+
+  <!-- Sección en español -->
+  <div style="margin-bottom: 40px;">
+    <strong style="color: #D92D20;">Solicitud rechazada para ChatGPT</strong><br><br>
+    <p>
+      Estimado/a <strong>@{triggerOutputs()?['body/cr8bd_sol_beneficiario']}</strong>,<br><br>
+      Te informamos que tu solicitud para acceder a ChatGPT ha sido <strong>rechazada</strong>.<br><br>
+      Si consideras que se trata de un error o deseas más información, por favor contacta con tu responsable o con el área de soporte correspondiente.<br><br>
+      Agradecemos tu interés.
+    </p>
+  </div>
+
+  <!-- Línea divisoria gris -->
+  <hr style="margin: 40px 0; border: none; border-top: 1px solid #dddddd;">
+
+  <!-- Sección en inglés -->
+  <div>
+    <strong style="color: #D92D20;">ChatGPT Access Request Denied</strong><br><br>
+    <p>
+      Dear <strong>@{triggerOutputs()?['body/cr8bd_sol_beneficiario']}</strong>,<br><br>
+      We regret to inform you that your request to access ChatGPT has been <strong>denied</strong>.<br><br>
+      If you believe this was a mistake or need further details, please contact your manager or the appropriate support team.<br><br>
+      Thank you for your interest.
+    </p>
+  </div>
+
+</div>
