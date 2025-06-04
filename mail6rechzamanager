@@ -7,12 +7,8 @@
             font-size: 15px;
             color: #333;">
 
-  <!-- Título -->
-  <h2 style="color: #D92D20;">
-    @{variables('HeaderEmail')}
-  </h2>
+  <h2 style="color: #D92D20;">@{variables('HeaderEmail')}</h2>
 
-  <!-- Español -->
   <div style="margin-bottom: 40px;">
     <strong style="color: #D92D20;">Solicitud rechazada por el Manager</strong><br><br>
     <p>
@@ -23,25 +19,14 @@
       <strong>Estado actual:</strong> @{variables('Estado')}<br><br>
     </p>
 
-    <!-- Comentario del Manager (si existe) -->
-    @{if(
-      and(
-        not(equals(triggerOutputs()?['body/cr8bd_comentarios_manager'], null)),
-        not(equals(triggerOutputs()?['body/cr8bd_comentarios_manager'], ''))
-      ),
-      concat(
-        '<div style="margin-top: 15px;"><strong style="color: #D92D20;">Comentario del Manager:</strong><br>',
-        triggerOutputs()?['body/cr8bd_comentarios_manager'],
-        '</div>'
-      ),
-      ''
-    )}
+    <p style="margin-top: 15px;">
+      <strong style="color: #D92D20;">Comentario del Manager:</strong><br>
+      @{triggerOutputs()?['body/cr8bd_comentarios_manager']}
+    </p>
   </div>
 
-  <!-- Línea divisoria gris -->
   <hr style="margin: 40px 0; border: none; border-top: 1px solid #dddddd;">
 
-  <!-- Inglés -->
   <div>
     <strong style="color: #D92D20;">Request Rejected by Manager</strong><br><br>
     <p>
@@ -52,19 +37,10 @@
       <strong>Current status:</strong> @{variables('Estado')}<br><br>
     </p>
 
-    <!-- Comentario del Manager en inglés (si existe) -->
-    @{if(
-      and(
-        not(equals(triggerOutputs()?['body/cr8bd_comentarios_manager'], null)),
-        not(equals(triggerOutputs()?['body/cr8bd_comentarios_manager'], ''))
-      ),
-      concat(
-        '<div style="margin-top: 15px;"><strong style="color: #D92D20;">Manager\'s Comment:</strong><br>',
-        triggerOutputs()?['body/cr8bd_comentarios_manager'],
-        '</div>'
-      ),
-      ''
-    )}
+    <p style="margin-top: 15px;">
+      <strong style="color: #D92D20;">Manager's Comment:</strong><br>
+      @{triggerOutputs()?['body/cr8bd_comentarios_manager']}
+    </p>
   </div>
 
 </div>
