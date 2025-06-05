@@ -1,0 +1,143 @@
+join(
+  union(
+    createArray(
+      outputs('Get_a_row_by_ID')?['body/cr8bd_manager'],
+      outputs('Get_a_row_by_ID')?['body/cr8bd_sol_beneficiario'],
+      outputs('Get_a_row_by_ID')?['body/cr8bd_solicitadopor']
+    ),
+    createArray()
+  ),
+  ';'
+)
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+Correo 1: Nueva solicitud registrada
+
+
+<div style="max-width: 600px; margin: auto; background-color: #ffffff; border: 1px solid #dddddd; padding: 20px; font-family: Arial, sans-serif; font-size: 15px; color: #333;">
+  <h2 style="color: #D92D20;">Nueva solicitud registrada</h2>
+
+  <!-- Español -->
+  <div style="margin-bottom: 40px;">
+    <strong style="color: #D92D20;">Nueva solicitud registrada para ChatGPT</strong>
+    <p>
+      Se ha registrado una nueva solicitud para el producto <strong>@{outputs('Get_a_row_by_ID')?['body/cr8bd_producto']}</strong>.<br><br>
+      A continuación, se presentan los detalles principales:<br><br>
+
+      <strong>Solicitante:</strong> @{outputs('Get_a_row_by_ID')?['body/cr8bd_sng_solicitudpeticionarionombre']}<br>
+      <strong>Beneficiario:</strong> @{outputs('Get_a_row_by_ID')?['body/cr8bd_sng_solicitudbeneficiarionombre']}<br>
+      <strong>Manager:</strong> @{outputs('Get_a_row_by_ID')?['body/cr8bd_sng_solicitudaprobador1nombre']}<br>
+      <strong>Estado inicial:</strong> @{outputs('Get_a_row_by_ID')?['body/cr8bd_sng_solicitudestado']}<br><br>
+
+      Recibirá notificaciones a medida que la solicitud avance en el proceso de aprobación.
+    </p>
+  </div>
+
+  <hr style="margin: 40px 0; border: none; border-top: 1px solid #dddddd;">
+
+  <!-- Inglés -->
+  <div>
+    <strong style="color: #D92D20;">New ChatGPT Access Request Submitted</strong>
+    <p>
+      A new request has been submitted for the product <strong>@{outputs('Get_a_row_by_ID')?['body/cr8bd_producto']}</strong>.<br><br>
+      Below are the main details:<br><br>
+
+      <strong>Requester:</strong> @{outputs('Get_a_row_by_ID')?['body/cr8bd_sng_solicitudpeticionarionombre']}<br>
+      <strong>Beneficiary:</strong> @{outputs('Get_a_row_by_ID')?['body/cr8bd_sng_solicitudbeneficiarionombre']}<br>
+      <strong>Manager:</strong> @{outputs('Get_a_row_by_ID')?['body/cr8bd_sng_solicitudaprobador1nombre']}<br>
+      <strong>Initial status:</strong> @{outputs('Get_a_row_by_ID')?['body/cr8bd_sng_solicitudestado']}<br><br>
+
+      You will receive updates as the request progresses through the approval workflow.
+    </p>
+  </div>
+</div>
+
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+📧 Correo 2: Solicitud aprobada por el Manager html Copiar Editar
+
+<div style="max-width: 600px; margin: auto; background-color: #ffffff; border: 1px solid #dddddd; padding: 20px; font-family: Arial, sans-serif; font-size: 15px; color: #333;">
+  <h2 style="color: #D92D20;">Solicitud aprobada por el Manager</h2>
+
+  <!-- Español -->
+  <div style="margin-bottom: 40px;">
+    <strong style="color: #D92D20;">Solicitud aprobada por el Manager</strong>
+    <p>
+      La solicitud para el producto <strong>@{outputs('Get_a_row_by_ID')?['body/cr8bd_producto']}</strong> ha sido <strong>aprobada por el Manager</strong>.<br><br>
+      A continuación, se presentan los detalles principales:<br><br>
+
+      <strong>Solicitante:</strong> @{outputs('Get_a_row_by_ID')?['body/cr8bd_sng_solicitudpeticionarionombre']}<br>
+      <strong>Beneficiario:</strong> @{outputs('Get_a_row_by_ID')?['body/cr8bd_sng_solicitudbeneficiarionombre']}<br>
+      <strong>Manager:</strong> @{outputs('Get_a_row_by_ID')?['body/cr8bd_sng_solicitudaprobador1nombre']}<br>
+      <strong>Estado inicial:</strong> @{outputs('Get_a_row_by_ID')?['body/cr8bd_sng_solicitudestado']}<br><br>
+
+      <strong style="color: #D92D20;">Comentario del Manager:</strong><br>
+      @{outputs('Get_a_row_by_ID')?['body/cr8bd_sol_comentario1']}
+    </p>
+  </div>
+
+  <hr style="margin: 40px 0; border: none; border-top: 1px solid #dddddd;">
+
+  <!-- Inglés -->
+  <div>
+    <strong style="color: #D92D20;">Request Approved by Manager</strong>
+    <p>
+      The request for the product <strong>@{outputs('Get_a_row_by_ID')?['body/cr8bd_producto']}</strong> has been <strong>approved by the Manager</strong>.<br><br>
+      Below are the main details:<br><br>
+
+      <strong>Requester:</strong> @{outputs('Get_a_row_by_ID')?['body/cr8bd_sng_solicitudpeticionarionombre']}<br>
+      <strong>Beneficiary:</strong> @{outputs('Get_a_row_by_ID')?['body/cr8bd_sng_solicitudbeneficiarionombre']}<br>
+      <strong>Manager:</strong> @{outputs('Get_a_row_by_ID')?['body/cr8bd_sng_solicitudaprobador1nombre']}<br>
+      <strong>Initial status:</strong> @{outputs('Get_a_row_by_ID')?['body/cr8bd_sng_solicitudestado']}<br><br>
+
+      <strong style="color: #D92D20;">Manager's Comment:</strong><br>
+      @{outputs('Get_a_row_by_ID')?['body/cr8bd_sol_comentario1']}
+    </p>
+  </div>
+</div>
+
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+Correo 3: Solicitud rechazada por el Manager
+
+<div style="max-width: 600px; margin: auto; background-color: #ffffff; border: 1px solid #dddddd; padding: 20px; font-family: Arial, sans-serif; font-size: 15px; color: #333;">
+  <h2 style="color: #D92D20;">Solicitud rechazada por el Manager</h2>
+
+  <!-- Español -->
+  <div style="margin-bottom: 40px;">
+    <strong style="color: #D92D20;">Solicitud rechazada por el Manager</strong>
+    <p>
+      La solicitud para el producto <strong>@{outputs('Get_a_row_by_ID')?['body/cr8bd_producto']}</strong> ha sido <strong>rechazada por el Manager</strong>.<br><br>
+      A continuación, se presentan los detalles principales:<br><br>
+
+      <strong>Solicitante:</strong> @{outputs('Get_a_row_by_ID')?['body/cr8bd_sng_solicitudpeticionarionombre']}<br>
+      <strong>Beneficiario:</strong> @{outputs('Get_a_row_by_ID')?['body/cr8bd_sng_solicitudbeneficiarionombre']}<br>
+      <strong>Manager:</strong> @{outputs('Get_a_row_by_ID')?['body/cr8bd_sng_solicitudaprobador1nombre']}<br>
+      <strong>Estado inicial:</strong> @{outputs('Get_a_row_by_ID')?['body/cr8bd_sng_solicitudestado']}<br><br>
+
+      <strong style="color: #D92D20;">Comentario del Manager:</strong><br>
+      @{outputs('Get_a_row_by_ID')?['body/cr8bd_sol_comentario1']}
+    </p>
+  </div>
+
+  <hr style="margin: 40px 0; border: none; border-top: 1px solid #dddddd;">
+
+  <!-- Inglés -->
+  <div>
+    <strong style="color: #D92D20;">Request Rejected by Manager</strong>
+    <p>
+      The request for the product <strong>@{outputs('Get_a_row_by_ID')?['body/cr8bd_producto']}</strong> has been <strong>rejected by the Manager</strong>.<br><br>
+      Below are the main details:<br><br>
+
+      <strong>Requester:</strong> @{outputs('Get_a_row_by_ID')?['body/cr8bd_sng_solicitudpeticionarionombre']}<br>
+      <strong>Beneficiary:</strong> @{outputs('Get_a_row_by_ID')?['body/cr8bd_sng_solicitudbeneficiarionombre']}<br>
+      <strong>Manager:</strong> @{outputs('Get_a_row_by_ID')?['body/cr8bd_sng_solicitudaprobador1nombre']}<br>
+      <strong>Initial status:</strong> @{outputs('Get_a_row_by_ID')?['body/cr8bd_sng_solicitudestado']}<br><br>
+
+      <strong style="color: #D92D20;">Manager's Comment:</strong><br>
+      @{outputs('Get_a_row_by_ID')?['body/cr8bd_sol_comentario1']}
+    </p>
+  </div>
+</div>
+
